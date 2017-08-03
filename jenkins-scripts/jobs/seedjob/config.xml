@@ -1,0 +1,152 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@2.0.1">
+      <maxConcurrentPerNode>0</maxConcurrentPerNode>
+      <maxConcurrentTotal>0</maxConcurrentTotal>
+      <categories class="java.util.concurrent.CopyOnWriteArrayList"/>
+      <throttleEnabled>false</throttleEnabled>
+      <throttleOption>project</throttleOption>
+      <limitOneJobWithMatchingParams>false</limitOneJobWithMatchingParams>
+      <paramsToUseForLimit></paramsToUseForLimit>
+    </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.3.2">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>https://del.tools.publicis.sapient.com/bitbucket/scm/mram/marriott-jt.git</url>
+        <credentialsId>a56f5939-08e8-406d-be1b-8fec1f3717d5</credentialsId>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>*/applications</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions/>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <hudson.triggers.SCMTrigger>
+      <spec>*/5 * * * *</spec>
+      <ignorePostCommitHooks>false</ignorePostCommitHooks>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <javaposse.jobdsl.plugin.ExecuteDslScripts plugin="job-dsl@1.64">
+      <targets>Jenkinsfile</targets>
+      <scriptText>import groovy.json.JsonSlurper
+
+def configFile = readFileFromWorkspace(&apos;jobConfig.json&apos;)
+def jsonSlurper = new JsonSlurper()
+def config = jsonSlurper.parseText(configFile)
+config.each {
+  def GIT_ORG = it.git_org
+  def GIT_BRANCH = it.git_branch
+  def GIT_REPO = it.project
+  def DOCKER_IMAGE = it.docker_image
+  def DEPLOY_APPS = it.deploy_apps
+  def GIT_TAG = it.git_tag
+  def GIT_QA_TAG = it.git_qa_tag
+  def GIT_URL = &quot;git.marriott.com&quot;
+  def JOB_TYPE = it.job_type
+  def JOB = JOB_TYPE+&quot;-&quot;+GIT_REPO
+  def URL = &quot;https://&quot;+GIT_URL+&quot;/&quot;+GIT_ORG+&quot;/&quot;+GIT_REPO+&quot;.git&quot;
+freeStyleJob(JOB){
+description(&quot;Job Created for &quot;+GIT_REPO)
+logRotator{
+    numToKeep(10)
+}
+parameters {
+    wHideParameterDefinition {
+      name(GIT_REPO)
+      defaultValue(GIT_REPO)
+      description(&apos;The git repo name, this field is hidden so that the dev-ops can only update them&apos;)
+    }
+    stringParam(&quot;GIT_ORG&quot;, GIT_ORG , &quot;The GIT Organisation/EID under which the repo is present&quot;)
+    stringParam(&quot;GIT_BRANCH&quot;, GIT_BRANCH, &quot;The Branch of git from which the docker images should build&quot;)
+    stringParam(&quot;DOCKER_IMAGE&quot;, DOCKER_IMAGE, &quot;The name and tag of the image into which the build/target output should be save as&quot;)
+    stringParam(&quot;DEPLOY_APPS&quot;, DEPLOY_APPS, &quot;Space separate list of application names which should be re-deployed with this respective build in sequence of deployment. NOTE: This is a hidden filed and to be managed by dev-ops only&quot;)
+    stringParam(&quot;GIT_TAG&quot;, GIT_TAG, &quot;Leave this blank, this is for release level build tagging only&quot;)
+    stringParam(&quot;GIT_QA_TAG&quot;, GIT_QA_TAG, &quot;Leave this blank, this is for release level build tagging only&quot;)
+  }
+concurrentBuild()
+wrappers {
+        credentialsBinding {
+            usernamePassword(&apos;username&apos;, &apos;password&apos;, &apos;NEW MIDO&apos;)
+        }
+    }
+scm{
+  git{
+    remote{
+      url(URL)
+      credentials(&apos;NEW MIDO&apos;)
+      }
+      branch(GIT_BRANCH)
+      }
+    }
+steps {
+  managedScript(&apos;git-repo-clone&apos;){
+    arguments(&apos;$GIT_ORG&apos;)
+    arguments(&apos;$GIT_REPO&apos;)
+    arguments(&apos;$GIT_BRANCH&apos;)
+    arguments(&apos;$GIT_TAG&apos;)
+  }
+  conditionalSteps{
+    condition{
+      not {
+        fileExists(&apos;.git-no-change&apos;, BaseDir.WORKSPACE)
+      }
+      steps{
+        managedScript(&apos;run-sbt-only&apos;){
+          arguments(&apos;clean compile stage&apos;)
+          arguments(&apos;ram&apos;)
+        }
+        managedScript(&apos;docker-create-image-and-tag&apos;){
+          arguments(&apos;$GIT_BRANCH&apos;)
+          arguments(&apos;$DOCKER_IMAGE&apos;)
+          arguments(&apos;$GIT_TAG&apos;)
+          arguments(&apos;$GIT_QA_TAG&apos;)
+          arguments(&apos;$BUILD_NUMBER&apos;)
+        }
+      }
+    }
+  }
+}
+}
+}</scriptText>
+      <usingScriptText>false</usingScriptText>
+      <sandbox>false</sandbox>
+      <ignoreExisting>false</ignoreExisting>
+      <ignoreMissingFiles>false</ignoreMissingFiles>
+      <failOnMissingPlugin>false</failOnMissingPlugin>
+      <unstableOnDeprecation>false</unstableOnDeprecation>
+      <removedJobAction>IGNORE</removedJobAction>
+      <removedViewAction>IGNORE</removedViewAction>
+      <removedConfigFilesAction>IGNORE</removedConfigFilesAction>
+      <lookupStrategy>JENKINS_ROOT</lookupStrategy>
+    </javaposse.jobdsl.plugin.ExecuteDslScripts>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <hudson.plugins.ws__cleanup.PreBuildCleanup plugin="ws-cleanup@0.33">
+      <deleteDirs>false</deleteDirs>
+      <cleanupParameter></cleanupParameter>
+      <externalDelete></externalDelete>
+    </hudson.plugins.ws__cleanup.PreBuildCleanup>
+  </buildWrappers>
+</project>

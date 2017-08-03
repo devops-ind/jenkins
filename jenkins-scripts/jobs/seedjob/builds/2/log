@@ -1,0 +1,68 @@
+Started by user [8mha:////4EJaV/hsfdZud4Zah/JyKidDP83omAR3riSgG1B3I3pTAAAAlx+LCAAAAAAAAP9b85aBtbiIQTGjNKU4P08vOT+vOD8nVc83PyU1x6OyILUoJzMv2y+/JJUBAhiZGBgqihhk0NSjKDWzXb3RdlLBUSYGJk8GtpzUvPSSDB8G5tKinBIGIZ+sxLJE/ZzEvHT94JKizLx0a6BxUmjGOUNodHsLgAzWEgZu/dLi1CL9xJTczDwAj6GcLcAAAAA=[0madmin
+[EnvInject] - Loading node environment variables.
+Building in workspace /var/lib/jenkins/workspace/seedjob
+Cloning the remote Git repository
+Cloning repository https://jchaw1@del.tools.publicis.sapient.com/bitbucket/scm/mram/marriott-jt.git
+ERROR: Failed to clean the workspace
+[8mha:////4J7UoCp4PQu+LKaeIG8uAlJETfkVhHRB+sg0bcAyyoecAAAAVx+LCAAAAAAAAP9b85aBtbiIQSmjNKU4P08vOT+vOD8nVc8DzHWtSE4tKMnMz/PLL0mV3NWzufebKBsTA0NFEYMUmgZnCA1SyAABjCCFBQC2xNaiYAAAAA==[0mjava.io.IOException: Unable to delete '/var/lib/jenkins/workspace/seedjob'. Tried 3 times (of a maximum of 3) waiting 0.1 sec between attempts.
+	at hudson.Util.deleteContentsRecursive(Util.java:230)
+	at org.jenkinsci.plugins.gitclient.CliGitAPIImpl$2.execute(CliGitAPIImpl.java:488)
+	at hudson.plugins.git.GitSCM.retrieveChanges(GitSCM.java:1070)
+	at hudson.plugins.git.GitSCM.checkout(GitSCM.java:1110)
+	at hudson.scm.SCM.checkout(SCM.java:495)
+	at hudson.model.AbstractProject.checkout(AbstractProject.java:1276)
+	at hudson.model.AbstractBuild$AbstractBuildExecution.defaultCheckout(AbstractBuild.java:560)
+	at jenkins.scm.SCMCheckoutStrategy.checkout(SCMCheckoutStrategy.java:86)
+	at hudson.model.AbstractBuild$AbstractBuildExecution.run(AbstractBuild.java:485)
+	at hudson.model.Run.execute(Run.java:1735)
+	at hudson.model.FreeStyleBuild.run(FreeStyleBuild.java:43)
+	at hudson.model.ResourceController.execute(ResourceController.java:97)
+	at hudson.model.Executor.run(Executor.java:405)
+Caused by: java.nio.file.AccessDeniedException: /var/lib/jenkins/workspace/seedjob/scripts/views.groovy
+	at sun.nio.fs.UnixException.translateToIOException(UnixException.java:84)
+	at sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:102)
+	at sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:107)
+	at sun.nio.fs.UnixFileSystemProvider.implDelete(UnixFileSystemProvider.java:244)
+	at sun.nio.fs.AbstractFileSystemProvider.deleteIfExists(AbstractFileSystemProvider.java:108)
+	at java.nio.file.Files.deleteIfExists(Files.java:1165)
+	at hudson.Util.tryOnceDeleteFile(Util.java:290)
+	at hudson.Util.tryOnceDeleteRecursive(Util.java:370)
+	at hudson.Util.tryOnceDeleteContentsRecursive(Util.java:389)
+	at hudson.Util.tryOnceDeleteRecursive(Util.java:369)
+	at hudson.Util.tryOnceDeleteContentsRecursive(Util.java:389)
+	at hudson.Util.deleteContentsRecursive(Util.java:225)
+	... 12 more
+ERROR: Error cloning remote repo 'origin'
+[8mha:////4J7UoCp4PQu+LKaeIG8uAlJETfkVhHRB+sg0bcAyyoecAAAAVx+LCAAAAAAAAP9b85aBtbiIQSmjNKU4P08vOT+vOD8nVc8DzHWtSE4tKMnMz/PLL0mV3NWzufebKBsTA0NFEYMUmgZnCA1SyAABjCCFBQC2xNaiYAAAAA==[0mhudson.plugins.git.GitException: Failed to delete workspace
+	at org.jenkinsci.plugins.gitclient.CliGitAPIImpl$2.execute(CliGitAPIImpl.java:491)
+	at hudson.plugins.git.GitSCM.retrieveChanges(GitSCM.java:1070)
+	at hudson.plugins.git.GitSCM.checkout(GitSCM.java:1110)
+	at hudson.scm.SCM.checkout(SCM.java:495)
+	at hudson.model.AbstractProject.checkout(AbstractProject.java:1276)
+	at hudson.model.AbstractBuild$AbstractBuildExecution.defaultCheckout(AbstractBuild.java:560)
+	at jenkins.scm.SCMCheckoutStrategy.checkout(SCMCheckoutStrategy.java:86)
+	at hudson.model.AbstractBuild$AbstractBuildExecution.run(AbstractBuild.java:485)
+	at hudson.model.Run.execute(Run.java:1735)
+	at hudson.model.FreeStyleBuild.run(FreeStyleBuild.java:43)
+	at hudson.model.ResourceController.execute(ResourceController.java:97)
+	at hudson.model.Executor.run(Executor.java:405)
+Caused by: java.io.IOException: Unable to delete '/var/lib/jenkins/workspace/seedjob'. Tried 3 times (of a maximum of 3) waiting 0.1 sec between attempts.
+	at hudson.Util.deleteContentsRecursive(Util.java:230)
+	at org.jenkinsci.plugins.gitclient.CliGitAPIImpl$2.execute(CliGitAPIImpl.java:488)
+	... 11 more
+Caused by: java.nio.file.AccessDeniedException: /var/lib/jenkins/workspace/seedjob/scripts/views.groovy
+	at sun.nio.fs.UnixException.translateToIOException(UnixException.java:84)
+	at sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:102)
+	at sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:107)
+	at sun.nio.fs.UnixFileSystemProvider.implDelete(UnixFileSystemProvider.java:244)
+	at sun.nio.fs.AbstractFileSystemProvider.deleteIfExists(AbstractFileSystemProvider.java:108)
+	at java.nio.file.Files.deleteIfExists(Files.java:1165)
+	at hudson.Util.tryOnceDeleteFile(Util.java:290)
+	at hudson.Util.tryOnceDeleteRecursive(Util.java:370)
+	at hudson.Util.tryOnceDeleteContentsRecursive(Util.java:389)
+	at hudson.Util.tryOnceDeleteRecursive(Util.java:369)
+	at hudson.Util.tryOnceDeleteContentsRecursive(Util.java:389)
+	at hudson.Util.deleteContentsRecursive(Util.java:225)
+	... 12 more
+ERROR: Error cloning remote repo 'origin'
+[8mha:////4J7UoCp4PQu+LKaeIG8uAlJETfkVhHRB+sg0bcAyyoecAAAAVx+LCAAAAAAAAP9b85aBtbiIQSmjNKU4P08vOT+vOD8nVc8DzHWtSE4tKMnMz/PLL0mV3NWzufebKBsTA0NFEYMUmgZnCA1SyAABjCCFBQC2xNaiYAAAAA==[0mFinished: FAILURE
