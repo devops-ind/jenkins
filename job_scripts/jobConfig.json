@@ -1,0 +1,32 @@
+[
+	{
+		"project" : "aries-play-auth-app",
+		"git_org" : "ram", 
+		"git_branch" : "sprint-dev-R2",
+		"git_tag" : "",
+		"git_qa_tag" : "",
+		"job_type" : "pod-build",
+		"docker_image" : "ram",
+		"deploy_apps" : ""
+	},
+	{
+		"project" : "aries-play-common-app",
+		"git_org" : "ram", 
+		"git_branch" : "sprint-dev-R2",
+		"git_tag" : "",
+		"git_qa_tag" : "",
+		"job_type" : "pod-build",
+		"docker_image" : "aries-ui-common:ram",
+		"deploy_apps" : ""
+	},
+	{
+		"project" : "aries-play-pci-app",
+		"git_org" : "ram", 
+		"git_branch" : "sprint-dev-R2",
+		"git_tag" : "",
+		"git_qa_tag" : "",
+		"job_type" : "pod-build",
+		"docker_image" : "ram",
+		"deploy_apps" : ""
+	}
+]

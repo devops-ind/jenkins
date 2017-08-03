@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.25">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.plugins.throttleconcurrents.ThrottleJobProperty plugin="throttle-concurrents@2.0.1">
+      <maxConcurrentPerNode>0</maxConcurrentPerNode>
+      <maxConcurrentTotal>0</maxConcurrentTotal>
+      <categories class="java.util.concurrent.CopyOnWriteArrayList"/>
+      <throttleEnabled>false</throttleEnabled>
+      <throttleOption>project</throttleOption>
+      <limitOneJobWithMatchingParams>false</limitOneJobWithMatchingParams>
+      <paramsToUseForLimit></paramsToUseForLimit>
+    </hudson.plugins.throttleconcurrents.ThrottleJobProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.3.2">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>https://del.tools.publicis.sapient.com/bitbucket/scm/mram/marriott-jt.git</url>
+        <credentialsId>a56f5939-08e8-406d-be1b-8fec1f3717d5</credentialsId>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>*/applications</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions/>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <javaposse.jobdsl.plugin.ExecuteDslScripts plugin="job-dsl@1.64">
+      <scriptText>import groovy.json.JsonSlurper
+
+def configFile = readFileFromWorkspace(&apos;jobConfig.json&apos;)
+def jsonSlurper = new JsonSlurper()
+def config = jsonSlurper.parseText(configFile)
+config.each {
+  def GIT_ORG = it.git_org
+  def GIT_BRANCH = it.git_branch
+  def GIT_REPO = it.project
+  def DOCKER_IMAGE = it.docker_image
+  def DEPLOY_APPS = it.deploy_apps
+  def GIT_TAG = it.git_tag
+  def GIT_QA_TAG = it.git_qa_tag
+  def GIT_URL = &quot;git.marriott.com&quot;
+  def JOB_TYPE = it.job_type
+  def JOB = JOB_TYPE+&quot;-&quot;+GIT_REPO
+  def URL = &quot;https://&quot;+GIT_URL+&quot;/&quot;+GIT_ORG+&quot;/&quot;+GIT_REPO+&quot;.git&quot;
+freeStyleJob(JOB){
+description(&quot;Job Created for &quot;+GIT_REPO)
+logRotator{
+    numToKeep(10)
+}
+parameters {
+    wHideParameterDefinition {
+      name(GIT_REPO)
+      defaultValue(GIT_REPO)
+      description(&apos;The git repo name, this field is hidden so that the dev-ops can only update them&apos;)
+    }
+    stringParam(&quot;GIT_ORG&quot;, GIT_ORG , &quot;The GIT Organisation/EID under which the repo is present&quot;)
+    stringParam(&quot;GIT_BRANCH&quot;, GIT_BRANCH, &quot;The Branch of git from which the docker images should build&quot;)
+    stringParam(&quot;DOCKER_IMAGE&quot;, DOCKER_IMAGE, &quot;The name and tag of the image into which the build/target output should be save as&quot;)
+    stringParam(&quot;DEPLOY_APPS&quot;, DEPLOY_APPS, &quot;Space separate list of application names which should be re-deployed with this respective build in sequence of deployment. NOTE: This is a hidden filed and to be managed by dev-ops only&quot;)
+    stringParam(&quot;GIT_TAG&quot;, GIT_TAG, &quot;Leave this blank, this is for release level build tagging only&quot;)
+    stringParam(&quot;GIT_QA_TAG&quot;, GIT_QA_TAG, &quot;Leave this blank, this is for release level build tagging only&quot;)
+  }
+concurrentBuild()
+wrappers {
+        credentialsBinding {
+            usernamePassword(&apos;username&apos;, &apos;password&apos;, &apos;NEW MIDO&apos;)
+        }
+    }
+scm{
+  git{
+    remote{
+      url(URL)
+      credentials(&apos;NEW MIDO&apos;)
+      }
+      branch(GIT_BRANCH)
+      }
+    }
+steps {
+  shell &apos;&apos;&apos;
+  # set -x
+  # set -e
+#  GIT_ORG=$1 ; shift
+#  GIT_REPO=$1 ; shift
+#  GIT_BRANCH=$1 ; shift
+#  GIT_TAG_NOW=${1-&quot;&quot;}
+  
+  mkdir -p $WORKSPACE
+  
+  cd $WORKSPACE/..
+  [ -s &quot;$WORKSPACE&quot; ] &amp;&amp; rm -rf &quot;$WORKSPACE&quot;
+  
+  #echo &quot;git clone -b $GIT_BRANCH git@git.marriott.com:${GIT_ORG}/${GIT_REPO}.git $WORKSPACE&quot; &gt; /tmp/repoclone.$$
+  git clone -b $GIT_BRANCH https://${username}:${password}@git.marriott.com/${GIT_ORG}/${GIT_REPO}.git $WORKSPACE
+  #git clone -b $GIT_BRANCH https://bshet219:meghnadiya456@git.marriott.com/${GIT_ORG}/${GIT_REPO}.git $WORKSPACE
+  #git clone -b $GIT_BRANCH git@git.marriott.com:${GIT_ORG}/${GIT_REPO}.git $WORKSPACE
+  
+  if [ $? == 0 ]; then
+    echo -e &quot;\\e[1;92mGit Repository\\e[0m git@git.marriott.com:${GIT_ORG}/${GIT_REPO}.git \\e[1;92mBranch\\e[0m $GIT_BRANCH&quot;
+  else
+    echo -e &quot;\\e[1;91mGIT Error\\e[0m Failed to clone the repository&quot;
+    exit 125;
+  fi
+  
+  cd $WORKSPACE
+  GIT_HEAD_HASH=$(git rev-parse --verify HEAD)
+  
+  if [ &quot;${GIT_TAG_NOW}&quot; ]; then
+    if [ &quot;${GIT_HEAD_HASH}&quot; == $(git rev-list -n 1 ${GIT_TAG_NOW} 2&gt;/dev/null) ]; then
+      echo -e &quot;\\e[1mSkip\\e[0m The build as there are no new changes&quot;
+      touch &quot;${WORKSPACE}/.git-no-change&quot;
+      exit 0;
+    fi
+  fi
+  &apos;&apos;&apos;
+}
+}
+}</scriptText>
+      <usingScriptText>true</usingScriptText>
+      <sandbox>false</sandbox>
+      <ignoreExisting>false</ignoreExisting>
+      <ignoreMissingFiles>false</ignoreMissingFiles>
+      <failOnMissingPlugin>false</failOnMissingPlugin>
+      <unstableOnDeprecation>false</unstableOnDeprecation>
+      <removedJobAction>IGNORE</removedJobAction>
+      <removedViewAction>IGNORE</removedViewAction>
+      <removedConfigFilesAction>IGNORE</removedConfigFilesAction>
+      <lookupStrategy>JENKINS_ROOT</lookupStrategy>
+    </javaposse.jobdsl.plugin.ExecuteDslScripts>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>
