@@ -1,9 +1,0 @@
-Started on Jul 28, 2017 3:45:00 PM
-Using strategy: Default
-[poll] Last Built Revision: Revision 7705ed7bf7e8a073541757216683f2ee1061c0ff (refs/remotes/origin/applications)
-using GIT_ASKPASS to set credentials 
- > git ls-remote -h https://del.tools.publicis.sapient.com/bitbucket/scm/mram/marriott-jt.git # timeout=10
-Found 2 remote heads on https://del.tools.publicis.sapient.com/bitbucket/scm/mram/marriott-jt.git
-[poll] Latest remote head revision on refs/heads/applications is: 7705ed7bf7e8a073541757216683f2ee1061c0ff - already built by 9
-Done. Took 3.2 sec
-No changes

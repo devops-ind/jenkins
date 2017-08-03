@@ -1,6 +1,0 @@
-Started by user [8mha:////4EJaV/hsfdZud4Zah/JyKidDP83omAR3riSgG1B3I3pTAAAAlx+LCAAAAAAAAP9b85aBtbiIQTGjNKU4P08vOT+vOD8nVc83PyU1x6OyILUoJzMv2y+/JJUBAhiZGBgqihhk0NSjKDWzXb3RdlLBUSYGJk8GtpzUvPSSDB8G5tKinBIGIZ+sxLJE/ZzEvHT94JKizLx0a6BxUmjGOUNodHsLgAzWEgZu/dLi1CL9xJTczDwAj6GcLcAAAAA=[0madmin
-[EnvInject] - Loading node environment variables.
-Building in workspace /var/lib/jenkins/workspace/seedjob
-Processing provided DSL script
-ERROR: (script, line 3) File jobConfig.json does not exist in workspace
-[8mha:////4J7UoCp4PQu+LKaeIG8uAlJETfkVhHRB+sg0bcAyyoecAAAAVx+LCAAAAAAAAP9b85aBtbiIQSmjNKU4P08vOT+vOD8nVc8DzHWtSE4tKMnMz/PLL0mV3NWzufebKBsTA0NFEYMUmgZnCA1SyAABjCCFBQC2xNaiYAAAAA==[0mFinished: FAILURE
