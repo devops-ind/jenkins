@@ -1,0 +1,3 @@
+---
+# defaults file for high-availability
+jenkins_vip: "192.168.1.100"

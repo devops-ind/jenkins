@@ -1,0 +1,9 @@
+---
+harbor_integration_enabled: true
+harbor_url: "harbor.yourdomain.com"
+harbor_project: "jenkins"
+harbor_username: "jenkins"
+harbor_password: "yourpassword"
+harbor_admin_user: "admin"
+harbor_admin_password: "yourpassword"
+harbor_email: "jenkins@yourdomain.com"

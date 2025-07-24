@@ -1,0 +1,22 @@
+---
+# tasks file for jenkins-infrastructure
+- name: Create Jenkins Agent Container
+  community.docker.docker_container:
+    name: "jenkins-agent-{{ item.name }}-{{ ansible_hostname }}"
+    image: "{{ harbor_registry_url }}/{{ harbor_project }}/{{ item.image }}:{{ jenkins_agent_image_tag }}"
+    state: started
+    restart_policy: unless-stopped
+    hostname: "jenkins-agent-{{ item.name }}-{{ ansible_hostname }}"
+    networks:
+      - name: "{{ jenkins_network_name }}"
+    env:
+      JENKINS_URL: "http://{{ groups['jenkins_masters'][0] }}:{{ jenkins_master_port }}"
+      JENKINS_AGENT_NAME: "jenkins-agent-{{ item.name }}-{{ ansible_hostname }}"
+      JENKINS_SECRET: "{{ jenkins_agent_secret }}"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+  loop:
+    - { name: 'dind', image: 'jenkins-agent-dind' }
+    - { name: 'maven', image: 'jenkins-agent-maven' }
+    - { name: 'python', image: 'jenkins-agent-python' }
+    - { name: 'nodejs', image: 'jenkins-agent-nodejs' }

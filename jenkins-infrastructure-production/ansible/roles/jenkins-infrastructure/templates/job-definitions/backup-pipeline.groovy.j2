@@ -1,0 +1,10 @@
+pipeline {
+    agent any
+    stages {
+        stage('Backup Jenkins') {
+            steps {
+                sh 'ansible-playbook -i inventories/production deploy-backup.yml'
+            }
+        }
+    }
+}

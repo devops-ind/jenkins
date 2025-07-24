@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Deploy Monitoring') {
+            steps {
+                script {
+                    ansiblePlaybook(
+                        playbook: 'ansible/deploy-monitoring.yml',
+                        inventory: 'ansible/inventories/production/hosts.yml',
+                        credentialsId: 'ansible-credentials'
+                    )
+                }
+            }
+        }
+    }
+}

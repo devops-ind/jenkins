@@ -1,0 +1,10 @@
+pipeline {
+    agent any
+    stages {
+        stage('Build Images') {
+            steps {
+                sh 'ansible-playbook -i inventories/production deploy-images.yml'
+            }
+        }
+    }
+}

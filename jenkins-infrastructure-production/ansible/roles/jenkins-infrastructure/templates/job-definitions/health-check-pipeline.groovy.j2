@@ -1,0 +1,13 @@
+pipeline {
+    agent any
+    triggers {
+        cron('H/15 * * * *')
+    }
+    stages {
+        stage('Health Check') {
+            steps {
+                sh 'ansible-playbook -i inventories/production site.yml --tags=verify'
+            }
+        }
+    }
+}

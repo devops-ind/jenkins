@@ -1,0 +1,10 @@
+---
+- hosts: jenkins_masters
+  become: yes
+  roles:
+    - jenkins-infrastructure
+
+- hosts: jenkins_agents
+  become: yes
+  roles:
+    - jenkins-infrastructure

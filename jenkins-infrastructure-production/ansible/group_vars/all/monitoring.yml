@@ -1,0 +1,8 @@
+---
+monitoring_enabled: true
+prometheus_config_dir: "/etc/prometheus"
+prometheus_data_dir: "/var/lib/prometheus"
+grafana_config_dir: "/etc/grafana"
+grafana_data_dir: "/var/lib/grafana"
+alertmanager_config_dir: "/etc/alertmanager"
+jenkins_exporter_image: "carlosedp/jenkins-exporter:v0.10.0"

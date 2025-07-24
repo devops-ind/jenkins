@@ -1,0 +1,11 @@
+---
+# tasks file for jenkins-infrastructure
+- name: Create Jenkins Data Volume
+  community.docker.docker_volume:
+    name: "{{ jenkins_data_volume }}"
+    state: present
+
+- name: Create Shared Workspace Volume
+  community.docker.docker_volume:
+    name: "{{ shared_workspace_volume }}"
+    state: present

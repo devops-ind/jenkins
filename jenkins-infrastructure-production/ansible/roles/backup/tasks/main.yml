@@ -1,0 +1,10 @@
+---
+# tasks file for backup
+- name: Include setup-backup tasks
+  include_tasks: setup-backup.yml
+
+- name: Include volume-backup tasks
+  include_tasks: volume-backup.yml
+
+- name: Include restore-backup tasks
+  include_tasks: restore-backup.yml

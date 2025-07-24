@@ -1,0 +1,46 @@
+---
+# tasks file for building jenkins images
+- name: Build Jenkins Master Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-master:{{ jenkins_master_image_tag }}"
+    build:
+      path: "{{ jenkins_images_build_dir }}/master"
+    source: build
+    push: "{{ jenkins_images_push }}"
+  when: jenkins_images_build
+
+- name: Build DIND Agent Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-dind:{{ jenkins_agent_image_tag }}"
+    build:
+      path: "{{ jenkins_images_build_dir }}/agents/dind"
+    source: build
+    push: "{{ jenkins_images_push }}"
+  when: jenkins_images_build
+
+- name: Build Maven Agent Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-maven:{{ jenkins_agent_image_tag }}"
+    build:
+      path: "{{ jenkins_images_build_dir }}/agents/maven"
+    source: build
+    push: "{{ jenkins_images_push }}"
+  when: jenkins_images_build
+
+- name: Build Python Agent Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-python:{{ jenkins_agent_image_tag }}"
+    build:
+      path: "{{ jenkins_images_build_dir }}/agents/python"
+    source: build
+    push: "{{ jenkins_images_push }}"
+  when: jenkins_images_build
+
+- name: Build NodeJS Agent Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-nodejs:{{ jenkins_agent_image_tag }}"
+    build:
+      path: "{{ jenkins_images_build_dir }}/agents/nodejs"
+    source: build
+    push: "{{ jenkins_images_push }}"
+  when: jenkins_images_build

@@ -1,0 +1,26 @@
+---
+# tasks file for docker
+- name: Install docker
+  package:
+    name: docker.io
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Start and enable docker service
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Add jenkins user to docker group
+  user:
+    name: "{{ jenkins_user }}"
+    groups: docker
+    append: yes
+  become: yes
+
+- name: Configure docker daemon
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+  notify: restart docker

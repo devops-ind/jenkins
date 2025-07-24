@@ -1,0 +1,5 @@
+---
+# defaults file for security
+jenkins_master_port: 8080
+jenkins_agent_port: 50000
+haproxy_stats_port: 8404

@@ -1,0 +1,22 @@
+[Unit]
+Description=Jenkins Agent
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=on-failure
+RestartSec=5
+ExecStartPre=-/usr/bin/docker exec %n stop
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStart=/usr/bin/docker run --name %n \
+  --network {{ jenkins_network_name }} \
+  -e JENKINS_URL=http://{{ groups['jenkins_masters'][0] }}:{{ jenkins_master_port }} \
+  -e JENKINS_AGENT_NAME=%n \
+  -e JENKINS_SECRET={{ jenkins_agent_secret }} \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  {{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-dind:{{ jenkins_agent_image_tag }}
+ExecStop=/usr/bin/docker stop %n
+
+[Install]
+WantedBy=multi-user.target

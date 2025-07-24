@@ -1,0 +1,20 @@
+groups:
+- name: jenkins
+  rules:
+  - alert: JenkinsDown
+    expr: up{job="jenkins"} == 0
+    for: 1m
+    labels:
+      severity: page
+    annotations:
+      summary: "Jenkins down"
+      description: "Jenkins instance {{ $labels.instance }} is down."
+
+  - alert: JenkinsJobFailed
+    expr: jenkins_job_last_build_result > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Jenkins job {{ $labels.job_name }} failed"
+      description: "Jenkins job {{ $labels.job_name }} has been failing for 5 minutes."

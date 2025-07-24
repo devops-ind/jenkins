@@ -1,0 +1,8 @@
+FROM python:3.9-slim
+
+# Set up user
+RUN addgroup -S jenkins && adduser -S jenkins -G jenkins
+RUN chown -R jenkins:jenkins /home/jenkins
+
+USER jenkins
+WORKDIR /home/jenkins

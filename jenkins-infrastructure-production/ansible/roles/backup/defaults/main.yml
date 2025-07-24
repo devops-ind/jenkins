@@ -1,0 +1,9 @@
+---
+# defaults file for backup
+backup_enabled: true
+restore_enabled: false
+backup_dir: "/mnt/backups/jenkins"
+jenkins_user: "jenkins"
+jenkins_group: "jenkins"
+jenkins_data_volume: "jenkins_data"
+shared_workspace_volume: "jenkins_workspace"

@@ -1,0 +1,13 @@
+---
+# tasks file for monitoring
+- name: Include prometheus tasks
+  include_tasks: prometheus.yml
+
+- name: Include grafana tasks
+  include_tasks: grafana.yml
+
+- name: Include alertmanager tasks
+  include_tasks: alertmanager.yml
+
+- name: Include exporters tasks
+  include_tasks: exporters.yml

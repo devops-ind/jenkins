@@ -1,0 +1,24 @@
+---
+# handlers file for jenkins-infrastructure
+- name: restart jenkins-master
+  systemd:
+    name: jenkins-master
+    state: restarted
+  become: yes
+
+- name: restart jenkins-agent
+  systemd:
+    name: jenkins-agent
+    state: restarted
+  become: yes
+
+- name: restart jenkins-haproxy
+  systemd:
+    name: jenkins-haproxy
+    state: restarted
+  become: yes
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+  become: yes

@@ -1,0 +1,4 @@
+- targets:
+  - 'jenkins-exporter:9118'
+  labels:
+    job: 'jenkins'

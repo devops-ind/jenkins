@@ -1,0 +1,21 @@
+[Unit]
+Description=Grafana
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=on-failure
+RestartSec=5
+ExecStartPre=-/usr/bin/docker exec %n stop
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStart=/usr/bin/docker run --name %n \
+  -p 3000:3000 \
+  -v {{ grafana_data_dir }}:/var/lib/grafana \
+  -v {{ grafana_config_dir }}/grafana.ini:/etc/grafana/grafana.ini \
+  -v {{ grafana_config_dir }}/provisioning:/etc/grafana/provisioning \
+  grafana/grafana:8.5.2
+ExecStop=/usr/bin/docker stop %n
+
+[Install]
+WantedBy=multi-user.target

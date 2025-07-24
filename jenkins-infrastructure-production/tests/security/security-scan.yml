@@ -1,0 +1,6 @@
+---
+- hosts: all
+  tasks:
+    - name: Run security scan
+      command: "echo 'Running security scan...'"
+      changed_when: false

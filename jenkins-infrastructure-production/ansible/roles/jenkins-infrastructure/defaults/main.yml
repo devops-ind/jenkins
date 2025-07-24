@@ -1,0 +1,16 @@
+---
+# defaults file for jenkins-infrastructure
+jenkins_role: "master"
+jenkins_network_name: "jenkins"
+jenkins_data_volume: "jenkins_data"
+shared_workspace_volume: "jenkins_workspace"
+jenkins_home_dir: "/home/jenkins"
+jenkins_user: "jenkins"
+jenkins_group: "jenkins"
+jenkins_uid: 1001
+jenkins_gid: 1001
+jenkins_agent_secret: "secret"
+jenkins_domain: "jenkins.example.com"
+haproxy_version: "2.5"
+haproxy_stats_user: "admin"
+haproxy_stats_password: "password"

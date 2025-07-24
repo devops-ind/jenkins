@@ -1,0 +1,37 @@
+---
+# tasks file for common
+- name: Update apt cache
+  apt:
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install common packages
+  package:
+    name:
+      - vim
+      - git
+      - curl
+      - wget
+      - htop
+      - chrony
+      - logrotate
+      - firewalld
+    state: present
+
+- name: Configure chrony
+  template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+  notify: restart chrony
+
+- name: Configure logrotate
+  template:
+    src: logrotate.conf.j2
+    dest: /etc/logrotate.conf
+  notify: restart logrotate
+
+- name: Configure firewalld
+  template:
+    src: firewalld.xml.j2
+    dest: /etc/firewalld/zones/public.xml
+  notify: restart firewalld

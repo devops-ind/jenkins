@@ -1,0 +1,201 @@
+---
+# Jenkins Master Container Management
+# Native Docker container management without Docker Compose
+
+- name: Pull Jenkins master image from Harbor
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-master"
+    tag: "{{ jenkins_master_image_tag }}"
+    source: pull
+    force_source: "{{ jenkins_force_pull_images | default(false) }}"
+  register: master_image_pull
+
+- name: Generate Jenkins Configuration as Code (JCasC)
+  template:
+    src: jenkins.yml.j2
+    dest: "{{ jenkins_home_dir }}/jcasc/jenkins.yml"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0644'
+  notify: restart jenkins-master
+
+- name: Generate HAProxy configuration
+  template:
+    src: haproxy.cfg.j2
+    dest: "{{ jenkins_home_dir }}/haproxy/haproxy.cfg"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0644'
+  notify: restart jenkins-haproxy
+  when: haproxy_enabled | default(true)
+
+- name: Create SSL certificates directory
+  file:
+    path: "{{ jenkins_home_dir }}/ssl"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0750'
+
+- name: Copy SSL certificates
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ jenkins_home_dir }}/ssl/{{ item.dest }}"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0640'
+  loop:
+    - { src: "{{ ssl_cert_path }}/{{ jenkins_domain }}.crt", dest: "jenkins.crt" }
+    - { src: "{{ ssl_key_path }}/{{ jenkins_domain }}.key", dest: "jenkins.key" }
+    - { src: "{{ ssl_ca_path }}/ca-bundle.crt", dest: "ca-bundle.crt" }
+  when:
+    - ssl_enabled | default(true)
+    - ssl_cert_path is defined
+  notify: restart jenkins-haproxy
+
+- name: Create Jenkins master container
+  community.docker.docker_container:
+    name: "jenkins-master-{{ ansible_hostname }}"
+    image: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-master:{{ jenkins_master_image_tag }}"
+    state: started
+    restart_policy: unless-stopped
+    hostname: "jenkins-master-{{ ansible_hostname }}"
+
+    # Network configuration
+    networks:
+      - name: "{{ jenkins_network_name }}"
+        ipv4_address: "{{ jenkins_master_ip | default(omit) }}"
+
+    # Port mappings
+    ports:
+      - "{{ jenkins_master_port }}:8080"
+      - "{{ jenkins_agent_port }}:50000"
+
+    # Environment variables
+    env:
+      JENKINS_ADMIN_ID: "{{ jenkins_admin_user }}"
+      JENKINS_ADMIN_PASSWORD: "{{ jenkins_admin_password }}"
+      JAVA_OPTS: >-
+        -Djenkins.install.runSetupWizard=false
+        -Xmx{{ jenkins_master_memory }}
+        -Xms{{ jenkins_master_memory_min }}
+        -XX:+UseG1GC
+        -XX:+UseStringDeduplication
+        -Djenkins.slaves.DefaultJnlpSlaveReceiver.disableHttps={{ jenkins_agent_disable_https | default('false') }}
+      JENKINS_OPTS: "--httpPort=8080 --httpsPort=-1"
+      CASC_JENKINS_CONFIG: "/var/jenkins_home/casc_configs"
+      TZ: "{{ system_timezone | default('UTC') }}"
+      HARBOR_REGISTRY: "{{ harbor_registry_url }}"
+      HARBOR_PROJECT: "{{ harbor_project }}"
+
+    # Volume mounts
+    volumes:
+      - "{{ jenkins_data_volume }}:/var/jenkins_home"
+      - "{{ jenkins_home_dir }}/jcasc:/var/jenkins_home/casc_configs:ro"
+      - "{{ shared_workspace_volume }}:/shared/workspace"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "{{ jenkins_home_dir }}/ssl:/var/jenkins_home/ssl:ro"
+      - "{{ backup_mount_point }}:/backup"
+
+    # Resource limits
+    memory: "{{ jenkins_master_memory_limit | default('4g') }}"
+    cpus: "{{ jenkins_master_cpu_limit | default('2.0') }}"
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/login || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+    # Security options
+    user: "{{ jenkins_uid }}:{{ jenkins_gid }}"
+    security_opts:
+      - "no-new-privileges:true"
+
+    # Labels for management
+    labels:
+      jenkins.component: "master"
+      jenkins.role: "controller"
+      jenkins.environment: "{{ deployment_environment }}"
+      jenkins.version: "{{ jenkins_master_image_tag }}"
+  register: jenkins_master_container
+
+- name: Create HAProxy container
+  community.docker.docker_container:
+    name: "jenkins-haproxy-{{ ansible_hostname }}"
+    image: "haproxy:{{ haproxy_version }}"
+    state: started
+    restart_policy: unless-stopped
+    hostname: "haproxy-{{ ansible_hostname }}"
+
+    # Network configuration
+    networks:
+      - name: "{{ jenkins_network_name }}"
+
+    # Port mappings
+    ports:
+      - "{{ haproxy_http_port | default('80') }}:80"
+      - "{{ haproxy_https_port | default('443') }}:443"
+      - "{{ haproxy_stats_port | default('8404') }}:8404"
+      - "{{ haproxy_health_port | default('8405') }}:8405"
+
+    # Volume mounts
+    volumes:
+      - "{{ jenkins_home_dir }}/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"
+      - "{{ jenkins_home_dir }}/ssl:/etc/ssl/certs:ro"
+
+    # Resource limits
+    memory: "{{ haproxy_memory_limit | default('512m') }}"
+    cpus: "{{ haproxy_cpu_limit | default('0.5') }}"
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8405/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    # Security options
+    user: "haproxy:haproxy"
+    security_opts:
+      - "no-new-privileges:true"
+
+    # Labels
+    labels:
+      jenkins.component: "load-balancer"
+      jenkins.environment: "{{ deployment_environment }}"
+      jenkins.version: "{{ haproxy_version }}"
+  when: haproxy_enabled | default(true)
+  register: haproxy_container
+
+- name: Wait for Jenkins master to be ready
+  uri:
+    url: "http://{{ ansible_default_ipv4.address }}:{{ jenkins_master_port }}/login"
+    method: GET
+    status_code: [200, 403]
+    timeout: 10
+  register: jenkins_ready_check
+  until: jenkins_ready_check is succeeded
+  retries: 30
+  delay: 10
+
+- name: Create Jenkins master backup script
+  template:
+    src: jenkins-backup.sh.j2
+    dest: "{{ jenkins_home_dir }}/bin/jenkins-backup.sh"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0755'
+
+- name: Setup Jenkins master backup cron job
+  cron:
+    name: "Jenkins master backup"
+    minute: "0"
+    hour: "2"
+    user: "{{ jenkins_user }}"
+    job: "{{ jenkins_home_dir }}/bin/jenkins-backup.sh"
+    state: present
+  when: backup_enabled | default(true)

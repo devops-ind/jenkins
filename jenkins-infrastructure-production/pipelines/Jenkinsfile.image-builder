@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Build and Push Images') {
+            steps {
+                script {
+                    ansiblePlaybook(
+                        playbook: 'ansible/deploy-images.yml',
+                        inventory: 'ansible/inventories/production/hosts.yml',
+                        credentialsId: 'ansible-credentials'
+                    )
+                }
+            }
+        }
+    }
+}

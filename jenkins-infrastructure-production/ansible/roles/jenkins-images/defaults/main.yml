@@ -1,0 +1,8 @@
+---
+# defaults file for jenkins-images
+jenkins_images_build: true
+jenkins_images_push: true
+jenkins_images_build_dir: "/tmp/jenkins-images"
+jenkins_version: "lts"
+jenkins_master_image_tag: "latest"
+jenkins_agent_image_tag: "latest"

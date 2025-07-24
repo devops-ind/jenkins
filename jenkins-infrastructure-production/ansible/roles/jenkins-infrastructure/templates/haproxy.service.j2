@@ -1,0 +1,22 @@
+[Unit]
+Description=HAProxy Load Balancer for Jenkins
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=on-failure
+RestartSec=5
+ExecStartPre=-/usr/bin/docker exec %n stop
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStart=/usr/bin/docker run --name %n \
+  --network {{ jenkins_network_name }} \
+  -p {{ haproxy_http_port | default('80') }}:80 \
+  -p {{ haproxy_https_port | default('443') }}:443 \
+  -p {{ haproxy_stats_port | default('8404') }}:8404 \
+  -v {{ jenkins_home_dir }}/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro \
+  haproxy:{{ haproxy_version }}
+ExecStop=/usr/bin/docker stop %n
+
+[Install]
+WantedBy=multi-user.target

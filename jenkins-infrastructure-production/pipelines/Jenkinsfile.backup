@@ -1,0 +1,21 @@
+pipeline {
+    agent any
+
+    triggers {
+        cron('H 2 * * *')
+    }
+
+    stages {
+        stage('Backup Jenkins') {
+            steps {
+                script {
+                    ansiblePlaybook(
+                        playbook: 'ansible/deploy-backup.yml',
+                        inventory: 'ansible/inventories/production/hosts.yml',
+                        credentialsId: 'ansible-credentials'
+                    )
+                }
+            }
+        }
+    }
+}

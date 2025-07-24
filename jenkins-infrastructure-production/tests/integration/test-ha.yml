@@ -1,0 +1,18 @@
+---
+- hosts: jenkins_masters
+  tasks:
+    - name: Check that keepalived is running
+      service:
+        name: keepalived
+        state: started
+        enabled: yes
+
+    - name: Check that pacemaker is running
+      service:
+        name: pacemaker
+        state: started
+        enabled: yes
+
+    - name: Check that the virtual IP is configured
+      command: "ip addr show | grep 'inet {{ jenkins_vip }}'"
+      changed_when: false

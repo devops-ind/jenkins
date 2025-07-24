@@ -1,0 +1,50 @@
+---
+# tasks file for grafana
+- name: Create Grafana container
+  community.docker.docker_container:
+    name: grafana
+    image: grafana/grafana:8.5.2
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - "{{ grafana_data_dir }}:/var/lib/grafana"
+      - "{{ grafana_config_dir }}/grafana.ini:/etc/grafana/grafana.ini"
+      - "{{ grafana_config_dir }}/provisioning:/etc/grafana/provisioning"
+
+- name: Create grafana config
+  template:
+    src: grafana.ini.j2
+    dest: "{{ grafana_config_dir }}/grafana.ini"
+  notify: restart grafana
+
+- name: Create grafana provisioning directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ grafana_config_dir }}/provisioning/datasources"
+    - "{{ grafana_config_dir }}/provisioning/dashboards"
+
+- name: Create grafana datasource config
+  template:
+    src: "datasources/prometheus.yml.j2"
+    dest: "{{ grafana_config_dir }}/provisioning/datasources/prometheus.yml"
+  notify: restart grafana
+
+- name: Create grafana dashboard providers
+  template:
+    src: "dashboards/provider.yml.j2"
+    dest: "{{ grafana_config_dir }}/provisioning/dashboards/provider.yml"
+  notify: restart grafana
+
+- name: Create grafana dashboards
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ grafana_config_dir }}/provisioning/dashboards/{{ item.dest }}"
+  loop:
+    - { src: 'dashboards/jenkins-dashboard.json.j2', dest: 'jenkins-dashboard.json' }
+    - { src: 'dashboards/infrastructure-dashboard.json.j2', dest: 'infrastructure-dashboard.json' }
+    - { src: 'dashboards/application-dashboard.json.j2', dest: 'application-dashboard.json' }
+  notify: restart grafana

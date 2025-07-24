@@ -1,0 +1,31 @@
+jenkins:
+  systemMessage: "Welcome to our Jenkins instance, managed by JCasC"
+  security:
+    globalJobDslSecurityConfiguration:
+      useScriptSecurity: true
+  remoting:
+    enabled: true
+  clouds:
+    - docker:
+        name: "docker"
+        dockerHost: "unix:///var/run/docker.sock"
+        templates:
+          - label: "dind"
+            image: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-dind:{{ jenkins_agent_image_tag }}"
+            remoteFS: "/home/jenkins"
+            instanceCap: 10
+          - label: "maven"
+            image: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-maven:{{ jenkins_agent_image_tag }}"
+            remoteFS: "/home/jenkins"
+            instanceCap: 10
+          - label: "python"
+            image: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-python:{{ jenkins_agent_image_tag }}"
+            remoteFS: "/home/jenkins"
+            instanceCap: 10
+          - label: "nodejs"
+            image: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-nodejs:{{ jenkins_agent_image_tag }}"
+            remoteFS: "/home/jenkins"
+            instanceCap: 10
+unclassified:
+  location:
+    url: "http://{{ jenkins_domain }}:{{ jenkins_master_port }}/"

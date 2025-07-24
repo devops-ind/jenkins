@@ -1,0 +1,13 @@
+---
+- hosts: jenkins_masters
+  tasks:
+    - name: Check that Jenkins is running
+      uri:
+        url: "http://localhost:{{ jenkins_master_port }}/login"
+        status_code: 200
+
+- hosts: jenkins_agents
+  tasks:
+    - name: Check that the agent is connected
+      shell: "ps aux | grep 'swarm-client' | grep -v grep"
+      changed_when: false

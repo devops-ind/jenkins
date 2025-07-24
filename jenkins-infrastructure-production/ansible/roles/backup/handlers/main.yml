@@ -1,0 +1,12 @@
+---
+# handlers file for backup
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+  become: yes
+
+- name: restart jenkins-backup.timer
+  systemd:
+    name: jenkins-backup.timer
+    state: restarted
+  become: yes

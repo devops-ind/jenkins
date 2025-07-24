@@ -1,0 +1,3 @@
+---
+backup_enabled: true
+backup_mount_point: "/backups"

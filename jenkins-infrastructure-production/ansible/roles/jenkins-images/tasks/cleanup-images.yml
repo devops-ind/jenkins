@@ -1,0 +1,7 @@
+---
+# tasks file for cleaning up jenkins images
+- name: Clean up old docker images
+  community.docker.docker_prune:
+    images: yes
+    images_filters:
+      dangling: no

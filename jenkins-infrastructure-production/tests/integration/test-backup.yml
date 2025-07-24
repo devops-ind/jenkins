@@ -1,0 +1,13 @@
+---
+- hosts: jenkins_masters
+  tasks:
+    - name: Run backup script
+      command: "{{ backup_dir }}/backup.sh"
+      register: backup_result
+      changed_when: false
+
+    - name: Check that backup was successful
+      assert:
+        that:
+          - backup_result.rc == 0
+          - "'jenkins_home.tar.gz' in backup_result.stdout"

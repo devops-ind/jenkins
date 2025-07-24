@@ -1,0 +1,31 @@
+---
+# tasks file for exporters
+- name: Create Node Exporter container
+  community.docker.docker_container:
+    name: node-exporter
+    image: prom/node-exporter:v1.3.1
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - "/proc:/host/proc:ro"
+      - "/sys:/host/sys:ro"
+      - "/:/rootfs:ro"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+
+- name: Create Jenkins Exporter container
+  community.docker.docker_container:
+    name: jenkins-exporter
+    image: "{{ jenkins_exporter_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "9118:9118"
+    environment:
+      JENKINS_URL: "http://{{ groups['jenkins_masters'][0] }}:{{ jenkins_master_port }}"
+      JENKINS_USER: "{{ jenkins_admin_user }}"
+      JENKINS_PASS: "{{ jenkins_admin_password }}"

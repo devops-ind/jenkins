@@ -1,0 +1,4 @@
+---
+# defaults file for common
+jenkins_master_port: 8080
+jenkins_agent_port: 50000

@@ -1,0 +1,10 @@
+pipeline {
+    agent any
+    stages {
+        stage('Update Infrastructure') {
+            steps {
+                sh 'ansible-playbook -i inventories/production site.yml'
+            }
+        }
+    }
+}
