@@ -1,0 +1,5 @@
+# This file should contain the CA bundle for the SSL certificate.
+# It should be protected and not checked into version control in a real environment.
+-----BEGIN CERTIFICATE-----
+MIIDdzCCAl+gAwIBAgIB...
+-----END CERTIFICATE-----

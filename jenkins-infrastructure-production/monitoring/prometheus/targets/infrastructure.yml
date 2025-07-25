@@ -1,0 +1,6 @@
+- targets:
+  {% for host in groups['all'] %}
+  - '{{ hostvars[host]['ansible_host'] }}:9100'
+  {% endfor %}
+  labels:
+    job: 'node'

@@ -1,0 +1,4 @@
+# This file is for encrypted variables.
+# Use ansible-vault to encrypt this file.
+# Example:
+# jenkins_admin_password: "mysecretpassword"

@@ -1,0 +1,17 @@
+---
+- hosts: monitoring
+  tasks:
+    - name: Check that Prometheus is running
+      uri:
+        url: "http://localhost:9090"
+        status_code: 200
+
+    - name: Check that Grafana is running
+      uri:
+        url: "http://localhost:3000"
+        status_code: 200
+
+    - name: Check that Alertmanager is running
+      uri:
+        url: "http://localhost:9093"
+        status_code: 200

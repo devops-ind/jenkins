@@ -1,0 +1,32 @@
+---
+# tasks file for high-availability
+- name: Install keepalived and pacemaker
+  package:
+    name:
+      - keepalived
+      - pacemaker
+    state: present
+
+- name: Configure keepalived
+  template:
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+  notify: restart keepalived
+
+- name: Configure pacemaker
+  template:
+    src: pacemaker.conf.j2
+    dest: /etc/pacemaker/pacemaker.conf
+  notify: restart pacemaker
+
+- name: Enable and start keepalived
+  service:
+    name: keepalived
+    state: started
+    enabled: yes
+
+- name: Enable and start pacemaker
+  service:
+    name: pacemaker
+    state: started
+    enabled: yes

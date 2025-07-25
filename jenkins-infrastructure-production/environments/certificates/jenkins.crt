@@ -1,0 +1,5 @@
+# This file should contain the SSL certificate for Jenkins.
+# It should be protected and not checked into version control in a real environment.
+-----BEGIN CERTIFICATE-----
+MIIC/zCCAeegAwIBAgIJAN...
+-----END CERTIFICATE-----

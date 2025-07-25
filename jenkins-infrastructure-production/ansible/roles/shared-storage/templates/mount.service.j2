@@ -1,0 +1,13 @@
+[Unit]
+Description=Mount Shared Storage
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/mount {{ shared_storage_mount_point }}
+RemainAfterExit=true
+ExecStop=/bin/umount {{ shared_storage_mount_point }}
+
+[Install]
+WantedBy=multi-user.target

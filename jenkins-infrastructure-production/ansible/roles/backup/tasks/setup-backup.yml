@@ -1,0 +1,39 @@
+---
+# tasks file for setting up backup
+- name: Create backup directory
+  file:
+    path: "{{ backup_dir }}"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0755'
+
+- name: Create backup script
+  template:
+    src: backup-script.sh.j2
+    dest: "{{ backup_dir }}/backup.sh"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0755'
+
+- name: Create restore script
+  template:
+    src: restore-script.sh.j2
+    dest: "{{ backup_dir }}/restore.sh"
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0755'
+
+- name: Create backup service
+  template:
+    src: backup.service.j2
+    dest: /etc/systemd/system/jenkins-backup.service
+  notify: reload systemd
+
+- name: Create backup timer
+  template:
+    src: backup.timer.j2
+    dest: /etc/systemd/system/jenkins-backup.timer
+  notify:
+    - reload systemd
+    - restart jenkins-backup.timer

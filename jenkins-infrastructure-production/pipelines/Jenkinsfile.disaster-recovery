@@ -1,0 +1,25 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'BACKUP_TIMESTAMP', defaultValue: '', description: 'Timestamp of the backup to restore')
+    }
+
+    stages {
+        stage('Restore from Backup') {
+            steps {
+                script {
+                    ansiblePlaybook(
+                        playbook: 'ansible/disaster-recovery.yml',
+                        inventory: 'ansible/inventories/production/hosts.yml',
+                        credentialsId: 'ansible-credentials',
+                        extraVars: [
+                            restore_enabled: true,
+                            backup_timestamp: params.BACKUP_TIMESTAMP
+                        ]
+                    )
+                }
+            }
+        }
+    }
+}

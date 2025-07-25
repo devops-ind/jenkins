@@ -1,0 +1,23 @@
+---
+# tasks file for restoring backup
+- name: Restore jenkins data volume
+  community.docker.docker_volume:
+    name: "{{ jenkins_data_volume }}"
+    driver: local
+    driver_options:
+      type: "none"
+      o: "bind"
+      device: "{{ backup_dir }}/jenkins_data"
+    state: present
+  when: restore_enabled | default(false)
+
+- name: Restore shared workspace volume
+  community.docker.docker_volume:
+    name: "{{ shared_workspace_volume }}"
+    driver: local
+    driver_options:
+      type: "none"
+      o: "bind"
+      device: "{{ backup_dir }}/jenkins_workspace"
+    state: present
+  when: restore_enabled | default(false)

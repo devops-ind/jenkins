@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+
+BACKUP_DIR="{{ backup_dir }}/$1"
+
+if [ -z "$1" ]; then
+  echo "Usage: $0 <backup_timestamp>"
+  exit 1
+fi
+
+if [ ! -d "${BACKUP_DIR}" ]; then
+  echo "Backup directory not found: ${BACKUP_DIR}"
+  exit 1
+fi
+
+docker run --rm \
+  -v {{ jenkins_data_volume }}:/jenkins_home \
+  -v "${BACKUP_DIR}":/backup \
+  ubuntu \
+  tar -xzf /backup/jenkins_home.tar.gz -C /jenkins_home
+
+docker run --rm \
+  -v {{ shared_workspace_volume }}:/jenkins_workspace \
+  -v "${BACKUP_DIR}":/backup \
+  ubuntu \
+  tar -xzf /backup/jenkins_workspace.tar.gz -C /jenkins_workspace

@@ -1,0 +1,10 @@
+{{ define "slack.default.text" }}
+{{ range .Alerts }}
+*{{ .Labels.alertname }}*
+*Severity:* `{{ .Labels.severity }}`
+*Description:* {{ .Annotations.description }}
+*Details:*
+{{ range .Labels.SortedPairs }}• `{{ .Name }}`: `{{ .Value }}`
+{{ end }}
+{{ end }}
+{{ end }}

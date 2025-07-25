@@ -1,0 +1,12 @@
+---
+# defaults file for harbor
+harbor_integration_enabled: true
+harbor_registry_url: "harbor.example.com"
+harbor_project: "jenkins"
+harbor_admin_username: "admin"
+harbor_admin_password: "password"
+harbor_username: "jenkins"
+harbor_password: "password"
+jenkins_admin_user: "admin"
+jenkins_admin_password: "password"
+jenkins_master_port: 8080

@@ -1,0 +1,6 @@
+---
+# tasks file for jenkins-infrastructure
+- name: Create Jenkins Network
+  community.docker.docker_network:
+    name: "{{ jenkins_network_name }}"
+    state: present

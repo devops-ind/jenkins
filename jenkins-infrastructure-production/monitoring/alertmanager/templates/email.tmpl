@@ -1,0 +1,18 @@
+{{ define "email.default.html" }}
+{{ range .Alerts }}
+<p>
+  <b>{{ .Labels.alertname }}</b>
+  <br>
+  <b>Severity:</b> {{ .Labels.severity }}
+  <br>
+  <b>Description:</b> {{ .Annotations.description }}
+  <br>
+  <b>Details:</b>
+  <ul>
+    {{ range .Labels.SortedPairs }}
+      <li>{{ .Name }}: {{ .Value }}</li>
+    {{ end }}
+  </ul>
+</p>
+{{ end }}
+{{ end }}

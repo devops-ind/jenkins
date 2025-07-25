@@ -1,0 +1,46 @@
+---
+# tasks file for harbor
+- name: Log in to Harbor
+  community.docker.docker_login:
+    registry_url: "{{ harbor_registry_url }}"
+    username: "{{ harbor_admin_username }}"
+    password: "{{ harbor_admin_password }}"
+  become: yes
+
+- name: Create project in Harbor
+  uri:
+    url: "https://{{ harbor_registry_url }}/api/v2.0/projects"
+    method: POST
+    body:
+      project_name: "{{ harbor_project }}"
+      public: false
+    body_format: json
+    headers:
+      Authorization: "Basic {{ (harbor_admin_username + ':' + harbor_admin_password) | b64encode }}"
+    status_code: [201, 409] # 201 for created, 409 for conflict (already exists)
+  register: create_project_result
+
+- name: Configure Harbor credentials in Jenkins
+  jenkins_script:
+    script: |
+      import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl
+      import com.cloudbees.plugins.credentials.CredentialsScope
+      import com.cloudbees.plugins.credentials.domains.Domain
+      import jenkins.model.Jenkins
+      import com.cloudbees.plugins.credentials.SystemCredentialsProvider
+
+      def credentialsStore = SystemCredentialsProvider.getInstance().getStore()
+      def domain = Domain.global()
+
+      def credentials = new UsernamePasswordCredentialsImpl(
+          CredentialsScope.GLOBAL,
+          "harbor-credentials",
+          "Harbor Registry Credentials",
+          "{{ harbor_username }}",
+          "{{ harbor_password }}"
+      )
+      credentialsStore.addCredentials(domain, credentials)
+    user: "{{ jenkins_admin_user }}"
+    password: "{{ jenkins_admin_password }}"
+    url: "http://localhost:{{ jenkins_master_port }}"
+  when: harbor_integration_enabled | default(true)

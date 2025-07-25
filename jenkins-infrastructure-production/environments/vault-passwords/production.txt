@@ -1,0 +1,3 @@
+# This file should contain the vault password for the production environment.
+# It should be protected and not checked into version control in a real environment.
+mysecretpassword

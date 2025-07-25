@@ -1,0 +1,31 @@
+---
+# tasks file for pushing jenkins images
+- name: Push Jenkins Master Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-master:{{ jenkins_master_image_tag }}"
+    push: yes
+  when: jenkins_images_push
+
+- name: Push DIND Agent Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-dind:{{ jenkins_agent_image_tag }}"
+    push: yes
+  when: jenkins_images_push
+
+- name: Push Maven Agent Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-maven:{{ jenkins_agent_image_tag }}"
+    push: yes
+  when: jenkins_images_push
+
+- name: Push Python Agent Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-python:{{ jenkins_agent_image_tag }}"
+    push: yes
+  when: jenkins_images_push
+
+- name: Push NodeJS Agent Image
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project }}/jenkins-agent-nodejs:{{ jenkins_agent_image_tag }}"
+    push: yes
+  when: jenkins_images_push

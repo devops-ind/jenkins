@@ -1,0 +1,37 @@
+---
+# tasks file for shared-storage
+- name: Install nfs client
+  package:
+    name: nfs-common
+    state: present
+  when: shared_storage_type == 'nfs'
+
+- name: Create mount point
+  file:
+    path: "{{ shared_storage_mount_point }}"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: '0755'
+
+- name: Mount shared storage
+  mount:
+    path: "{{ shared_storage_mount_point }}"
+    src: "{{ shared_storage_server }}:{{ shared_storage_path }}"
+    fstype: "{{ shared_storage_type }}"
+    opts: "defaults"
+    state: mounted
+
+- name: Add fstab entry
+  template:
+    src: fstab.j2
+    dest: /etc/fstab
+  notify: reload systemd
+
+- name: Create mount service
+  template:
+    src: mount.service.j2
+    dest: /etc/systemd/system/shared-mount.service
+  notify:
+    - reload systemd
+    - restart shared-mount

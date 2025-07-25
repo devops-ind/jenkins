@@ -1,0 +1,7 @@
+---
+- hosts: jenkins_masters
+  become: yes
+  vars:
+    restore_enabled: true
+  roles:
+    - backup

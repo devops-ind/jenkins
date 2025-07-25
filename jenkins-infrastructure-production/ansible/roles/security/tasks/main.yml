@@ -1,0 +1,50 @@
+---
+# tasks file for security
+- name: Install security packages
+  package:
+    name:
+      - ufw
+      - fail2ban
+      - auditd
+    state: present
+
+- name: Configure ufw
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop:
+    - "22"
+    - "80"
+    - "443"
+    - "{{ jenkins_master_port }}"
+    - "{{ jenkins_agent_port }}"
+    - "{{ haproxy_stats_port }}"
+
+- name: Enable ufw
+  ufw:
+    state: enabled
+
+- name: Configure fail2ban
+  copy:
+    src: jail.local
+    dest: /etc/fail2ban/jail.local
+  notify: restart fail2ban
+
+- name: Configure auditd
+  template:
+    src: audit.rules.j2
+    dest: /etc/audit/rules.d/audit.rules
+  notify: restart auditd
+
+- name: Configure selinux
+  template:
+    src: selinux.conf.j2
+    dest: /etc/selinux/config
+  when: ansible_os_family == "RedHat"
+
+- name: Configure firewalld for security
+  template:
+    src: firewalld.xml.j2
+    dest: /etc/firewalld/zones/public.xml
+  notify: restart firewalld
+  when: ansible_os_family == "RedHat"

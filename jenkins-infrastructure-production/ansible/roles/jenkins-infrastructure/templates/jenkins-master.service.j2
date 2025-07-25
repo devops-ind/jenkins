@@ -1,0 +1,21 @@
+[Unit]
+Description=Jenkins Master
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=on-failure
+RestartSec=5
+ExecStartPre=-/usr/bin/docker exec %n stop
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStart=/usr/bin/docker run --name %n \
+  -p {{ jenkins_master_port }}:8080 \
+  -p {{ jenkins_agent_port }}:50000 \
+  -v {{ jenkins_data_volume }}:/var/jenkins_home \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  {{ harbor_registry_url }}/{{ harbor_project }}/jenkins-master:{{ jenkins_master_image_tag }}
+ExecStop=/usr/bin/docker stop %n
+
+[Install]
+WantedBy=multi-user.target

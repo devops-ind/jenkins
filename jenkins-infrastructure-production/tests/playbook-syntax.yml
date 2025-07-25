@@ -1,0 +1,10 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Check playbook syntax
+      command: ansible-playbook --syntax-check {{ item }}
+      loop:
+        - ansible/site.yml
+        - ansible/deploy-images.yml
+        - ansible/deploy-monitoring.yml
+        - ansible/deploy-backup.yml

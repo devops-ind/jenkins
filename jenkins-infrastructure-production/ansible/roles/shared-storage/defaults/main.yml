@@ -1,0 +1,9 @@
+---
+# defaults file for shared-storage
+shared_storage_enabled: true
+shared_storage_type: "nfs"
+shared_storage_server: "nfs.example.com"
+shared_storage_path: "/exports/jenkins"
+shared_storage_mount_point: "/mnt/jenkins"
+jenkins_user: "jenkins"
+jenkins_group: "jenkins"

@@ -1,0 +1,6 @@
+[Unit]
+Description=Jenkins Backup Service
+
+[Service]
+Type=oneshot
+ExecStart={{ backup_dir }}/backup.sh

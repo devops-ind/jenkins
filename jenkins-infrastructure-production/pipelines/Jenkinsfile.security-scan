@@ -1,0 +1,16 @@
+pipeline {
+    agent any
+
+    triggers {
+        cron('H H * * 1-5')
+    }
+
+    stages {
+        stage('Security Scan') {
+            steps {
+                sh 'echo "Running security scan..."'
+                // Add security scan tool commands here
+            }
+        }
+    }
+}

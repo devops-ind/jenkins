@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Update Infrastructure') {
+            steps {
+                script {
+                    ansiblePlaybook(
+                        playbook: 'ansible/site.yml',
+                        inventory: 'ansible/inventories/production/hosts.yml',
+                        credentialsId: 'ansible-credentials'
+                    )
+                }
+            }
+        }
+    }
+}
