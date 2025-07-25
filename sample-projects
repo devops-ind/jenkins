@@ -1,0 +1,828 @@
+#!/bin/bash
+
+# This script creates the complete directory structure and all necessary files
+# for the jenkins-infrastructure project.
+
+echo "Starting Jenkins Infrastructure project creation..."
+
+# --- Create Root Directory ---
+mkdir -p jenkins-infrastructure
+cd jenkins-infrastructure || exit
+
+# --- Create Main Directories ---
+echo "Creating base directory structure..."
+mkdir -p ansible/inventories/production/group_vars/all
+mkdir -p ansible/playbooks
+mkdir -p ansible/roles/common/tasks
+mkdir -p ansible/roles/docker/tasks
+mkdir -p ansible/roles/haproxy/handlers
+mkdir -p ansible/roles/haproxy/templates
+mkdir -p ansible/roles/jenkins-ha/templates
+mkdir -p ansible/roles/jenkins-images/tasks
+mkdir -p ansible/roles/jenkins-images/templates
+mkdir -p ansible/roles/backup/tasks
+mkdir -p ansible/roles/backup/templates
+mkdir -p ansible/roles/monitoring/files/dashboards
+mkdir -p ansible/roles/monitoring/tasks
+mkdir -p ansible/roles/monitoring/templates/grafana
+mkdir -p ansible/roles/security/tasks
+mkdir -p ansible/roles/shared-storage/handlers
+mkdir -p ansible/roles/shared-storage/templates
+mkdir -p pipelines
+mkdir -p docs
+
+# ==============================================================================
+# --- ROOT FILES ---
+# ==============================================================================
+
+echo "Writing root files..."
+
+cat <<'EOF' > Makefile
+# Makefile
+.PHONY: help setup deploy deploy-ha update-images vault-edit vault-encrypt vault-decrypt clean
+
+help:
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Targets:"
+	@echo "  setup             Install Ansible dependencies from requirements.yml"
+	@echo "  deploy            Run the main site.yml playbook to deploy/update everything"
+	@echo "  deploy-ha         Run only the Jenkins HA deployment tasks"
+	@echo "  update-images     Build and push new Jenkins Docker images"
+	@echo "  vault-edit        Edit the encrypted vault.yml file"
+	@echo "  vault-encrypt     Encrypt the vault.yml file"
+	@echo "  vault-decrypt     Decrypt the vault.yml file for viewing"
+	@echo "  clean             Remove Ansible log files"
+
+setup:
+	@echo "Installing Ansible collections and roles..."
+	ansible-galaxy install -r ansible/requirements.yml
+
+deploy: setup
+	@echo "Running the main deployment playbook..."
+	ansible-playbook ansible/site.yml --vault-ask-pass
+
+deploy-ha: setup
+	@echo "Deploying/updating Jenkins HA masters..."
+	ansible-playbook ansible/site.yml --tags "jenkins-master" --vault-ask-pass
+
+update-images: setup
+	@echo "Building and pushing Jenkins images..."
+	ansible-playbook ansible/playbooks/update-images.yml --vault-ask-pass
+
+VAULT_FILE = ansible/inventories/production/group_vars/all/vault.yml
+vault-edit:
+	@echo "Editing vault file: $(VAULT_FILE)"
+	ansible-vault edit $(VAULT_FILE)
+
+vault-encrypt:
+	@echo "Encrypting vault file: $(VAULT_FILE)"
+	ansible-vault encrypt $(VAULT_FILE)
+
+vault-decrypt:
+	@echo "Decrypting vault file: $(VAULT_FILE)"
+	ansible-vault decrypt $(VAULT_FILE)
+
+clean:
+	@echo "Cleaning up log files..."
+	rm -f ansible/ansible.log
+EOF
+
+cat <<'EOF' > README.md
+# Production-Grade Jenkins Infrastructure with Ansible
+
+This project automates the deployment and management of a High-Availability (HA), scalable, and observable Jenkins environment using Ansible.
+
+## Features
+
+- **HA Jenkins Masters**: Deploys multiple Jenkins master containers, fronted by HAProxy.
+- **Shared `JENKINS_HOME`**: Uses NFS for a shared `JENKINS_HOME` directory.
+- **Configuration as Code (JCasC)**: Jenkins is configured entirely via YAML files.
+- **Decoupled Image Building**: A separate Ansible role manages building custom Jenkins images.
+- **Ansible-Managed Containers**: Deploys all services (Jenkins, Prometheus, Grafana) as containers managed by Ansible.
+- **Monitoring Stack**: Deploys Prometheus and Grafana for monitoring.
+- **Automated Backups**: Includes a Jenkins pipeline for daily backups.
+
+## Deployment Steps
+
+1.  **Configure Inventory & Variables**
+    -   Update `ansible/inventories/production/hosts.yml`.
+    -   Update `ansible/inventories/production/group_vars/all/main.yml`.
+    -   Encrypt secrets in `ansible/inventories/production/group_vars/all/vault.yml` with `make vault-encrypt`.
+
+2.  **Install Ansible Dependencies**
+    ```bash
+    make setup
+    ```
+
+3.  **Run the Main Deployment**
+    ```bash
+    make deploy
+    ```
+EOF
+
+cat <<'EOF' > requirements.txt
+ansible>=5.0.0
+EOF
+
+cat <<'EOF' > .gitignore
+# Ansible temporary files
+*.retry
+*.log
+
+# Vault files
+vault-passwords/
+*.vault
+
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# IDE specific
+.vscode/
+.idea/
+EOF
+
+# ==============================================================================
+# --- ANSIBLE CONFIG ---
+# ==============================================================================
+
+echo "Writing Ansible configuration files..."
+
+cat <<'EOF' > ansible/ansible.cfg
+[defaults]
+inventory = ./inventories/production/hosts.yml
+roles_path = ./roles
+host_key_checking = False
+remote_user = ansible_user
+pipelining = True
+log_path = ./ansible.log
+stdout_callback = yaml
+display_skipped_hosts = True
+display_args_to_stdout = False
+
+[privilege_escalation]
+become = True
+become_method = sudo
+become_user = root
+become_ask_pass = False
+EOF
+
+cat <<'EOF' > ansible/requirements.yml
+collections:
+  - name: community.docker
+    version: ">=3.0.0"
+  - name: community.general
+    version: ">=6.0.0"
+  - name: prometheus.prometheus
+    version: ">=0.12.0"
+EOF
+
+cat <<'EOF' > ansible/site.yml
+---
+- name: 1. Bootstrap all nodes
+  hosts: all
+  become: true
+  roles:
+    - role: common
+      tags: ['common']
+
+- name: 2. Install Docker
+  hosts: jenkins_masters, jenkins_agents, monitoring, build_host
+  become: true
+  roles:
+    - role: docker
+      tags: ['docker']
+
+- name: 3. Setup shared storage server (NFS)
+  hosts: nfs_server
+  become: true
+  roles:
+    - role: shared-storage
+      tags: ['storage', 'nfs-server']
+
+- name: 4. Mount shared storage on Jenkins masters
+  hosts: jenkins_masters
+  become: true
+  roles:
+    - role: shared-storage
+      tags: ['storage', 'nfs-client']
+
+- name: 5. Setup HAProxy load balancer
+  hosts: load_balancers
+  become: true
+  roles:
+    - role: haproxy
+      tags: ['haproxy', 'networking']
+
+- name: 6. Deploy HA Jenkins Masters
+  hosts: jenkins_masters
+  become: true
+  roles:
+    - role: jenkins-ha
+      tags: ['jenkins', 'jenkins-master']
+
+- name: 7. Deploy monitoring stack
+  hosts: monitoring
+  become: true
+  roles:
+    - role: monitoring
+      tags: ['monitoring']
+
+- name: 8. Apply security hardening
+  hosts: all
+  become: true
+  roles:
+    - role: security
+      tags: ['security']
+EOF
+
+# ==============================================================================
+# --- ANSIBLE INVENTORY ---
+# ==============================================================================
+
+echo "Writing Ansible inventory files..."
+
+cat <<'EOF' > ansible/inventories/production/hosts.yml
+all:
+  children:
+    nfs_server:
+      hosts:
+        nfs01:
+          ansible_host: 192.168.1.10
+    jenkins_masters:
+      hosts:
+        jenkins-master-01:
+          ansible_host: 192.168.1.20
+        jenkins-master-02:
+          ansible_host: 192.168.1.21
+    jenkins_agents:
+      hosts:
+        jenkins-agent-01:
+          ansible_host: 192.168.1.30
+    load_balancers:
+      hosts:
+        haproxy01:
+          ansible_host: 192.168.1.40
+    monitoring:
+      hosts:
+        monitor01:
+          ansible_host: 192.168.1.50
+    build_host:
+      hosts:
+        jenkins-agent-01:
+EOF
+
+cat <<'EOF' > ansible/inventories/production/group_vars/all/main.yml
+# Global variables
+ansible_user: ansible_user
+ansible_ssh_private_key_file: "~/.ssh/id_rsa_prod"
+system_timezone: "Europe/Dublin"
+
+# Harbor Registry Details
+harbor_registry_url: "harbor.yourdomain.com"
+harbor_project_name: "jenkins"
+harbor_user: "your-harbor-user"
+
+# Jenkins Settings
+jenkins_version: "2.414.3"
+jenkins_home_nfs_mount: "/mnt/jenkins_home"
+jenkins_master_image: "{{ harbor_registry_url }}/{{ harbor_project_name }}/jenkins-master:{{ jenkins_version }}"
+jenkins_dind_agent_image: "{{ harbor_registry_url }}/{{ harbor_project_name }}/dind-agent:latest"
+jenkins_admin_user: "admin"
+
+# Monitoring Settings
+prometheus_version: "v2.45.0"
+grafana_version: "9.5.3"
+node_exporter_version: "1.6.0"
+
+# Backup Settings
+backup_path: "/mnt/backups/jenkins"
+backup_retention_days: 7
+EOF
+
+cat <<'EOF' > ansible/inventories/production/group_vars/all/vault.yml
+# Encrypt this file with `ansible-vault encrypt vault.yml`
+# Contains sensitive data like passwords and API keys.
+harbor_password: "YourSuperSecretHarborPassword"
+jenkins_admin_password: "YourSuperSecretJenkinsPassword"
+grafana_admin_password: "YourSuperSecretGrafanaPassword"
+vault_github_pat: "YourGitHubPersonalAccessToken"
+EOF
+
+# ==============================================================================
+# --- ANSIBLE PLAYBOOKS ---
+# ==============================================================================
+
+echo "Writing Ansible playbooks..."
+
+cat <<'EOF' > ansible/playbooks/update-images.yml
+---
+- name: Build and Push Jenkins Docker Images
+  hosts: build_host
+  become: true
+  roles:
+    - role: jenkins-images
+      tags: ['jenkins-image-build']
+EOF
+
+# ==============================================================================
+# --- ANSIBLE ROLES ---
+# ==============================================================================
+
+echo "Writing Ansible roles..."
+
+# --- Role: common ---
+cat <<'EOF' > ansible/roles/common/tasks/main.yml
+---
+- name: Update apt cache (for Debian-based systems)
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install common packages
+  ansible.builtin.package:
+    name:
+      - vim
+      - git
+      - curl
+      - wget
+      - rsync
+      - python3-pip
+    state: present
+EOF
+
+# --- Role: docker ---
+cat <<'EOF' > ansible/roles/docker/tasks/main.yml
+---
+- name: Install prerequisites for Docker
+  ansible.builtin.package:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - gnupg-agent
+      - software-properties-common
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Add Docker GPG key
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Add Docker repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Docker
+  ansible.builtin.package:
+    name: docker-ce
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Add user to docker group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+- name: Start and enable Docker service
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+EOF
+
+# --- Role: shared-storage ---
+cat <<'EOF' > ansible/roles/shared-storage/tasks/main.yml
+---
+- name: Setup NFS Server
+  block:
+    - name: Install NFS server packages
+      ansible.builtin.package:
+        name: nfs-utils
+        state: present
+
+    - name: Create Jenkins home directory to be exported
+      ansible.builtin.file:
+        path: "{{ jenkins_home_nfs_share_path | default('/srv/nfs/jenkins_home') }}"
+        state: directory
+        mode: '0777'
+
+    - name: Configure NFS exports
+      ansible.builtin.template:
+        src: exports.j2
+        dest: /etc/exports
+      notify: Reload NFS
+
+    - name: Ensure NFS services are started and enabled
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - rpcbind
+        - nfs-server
+  when: "'nfs-server' in ansible_run_tags"
+
+- name: Setup NFS Client
+  block:
+    - name: Install NFS client packages
+      ansible.builtin.package:
+        name: nfs-utils
+        state: present
+
+    - name: Create mount point for Jenkins home
+      ansible.builtin.file:
+        path: "{{ jenkins_home_nfs_mount }}"
+        state: directory
+        mode: '0775'
+
+    - name: Mount the NFS share for Jenkins home
+      ansible.posix.mount:
+        src: "{{ hostvars[groups['nfs_server'][0]]['ansible_host'] }}:{{ jenkins_home_nfs_share_path | default('/srv/nfs/jenkins_home') }}"
+        path: "{{ jenkins_home_nfs_mount }}"
+        fstype: nfs
+        opts: "rw,sync,hard,intr"
+        state: mounted
+  when: "'nfs-client' in ansible_run_tags"
+EOF
+cat <<'EOF' > ansible/roles/shared-storage/templates/exports.j2
+{{ jenkins_home_nfs_share_path | default('/srv/nfs/jenkins_home') }} {% for host in groups['jenkins_masters'] %}{{ hostvars[host]['ansible_host'] }}(rw,sync,no_root_squash) {% endfor %}
+EOF
+cat <<'EOF' > ansible/roles/shared-storage/handlers/main.yml
+---
+- name: Reload NFS
+  ansible.builtin.command: "exportfs -ra"
+  listen: "Reload NFS"
+EOF
+
+# --- Role: haproxy ---
+cat <<'EOF' > ansible/roles/haproxy/tasks/main.yml
+---
+- name: Install HAProxy
+  ansible.builtin.package:
+    name: haproxy
+    state: present
+
+- name: Configure HAProxy
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+  notify: Restart HAProxy
+
+- name: Ensure HAProxy service is started and enabled
+  ansible.builtin.service:
+    name: haproxy
+    state: started
+    enabled: true
+EOF
+cat <<'EOF' > ansible/roles/haproxy/templates/haproxy.cfg.j2
+global
+    log /dev/log    local0
+    daemon
+
+defaults
+    log     global
+    mode    http
+    option  httplog
+    option  dontlognull
+    timeout connect 5000
+    timeout client  50000
+    timeout server  50000
+
+frontend jenkins_frontend
+    bind *:80
+    default_backend jenkins_backend
+
+backend jenkins_backend
+    balance roundrobin
+    option httpchk GET /login
+    http-check expect status 200
+    {% for host in groups['jenkins_masters'] %}
+    server {{ host }} {{ hostvars[host]['ansible_host'] }}:8080 check
+    {% endfor %}
+EOF
+cat <<'EOF' > ansible/roles/haproxy/handlers/main.yml
+---
+- name: Restart HAProxy
+  ansible.builtin.service:
+    name: haproxy
+    state: restarted
+EOF
+
+# --- Role: jenkins-images ---
+cat <<'EOF' > ansible/roles/jenkins-images/tasks/main.yml
+---
+- name: Ensure build directory exists
+  ansible.builtin.file:
+    path: "/tmp/jenkins-image-build"
+    state: directory
+
+- name: Log in to Harbor Registry
+  community.docker.docker_login:
+    registry_url: "{{ harbor_registry_url }}"
+    username: "{{ harbor_user }}"
+    password: "{{ harbor_password }}"
+
+- name: Build and push Jenkins images
+  include_tasks: build-images.yml
+  loop:
+    - { name: 'jenkins-master', tag: '{{ jenkins_version }}', template: 'Dockerfile.master.j2' }
+    - { name: 'dind-agent', tag: 'latest', template: 'Dockerfile.dind-agent.j2' }
+  loop_control:
+    loop_var: image_spec
+EOF
+cat <<'EOF' > ansible/roles/jenkins-images/tasks/build-images.yml
+---
+- name: "Template Dockerfile for {{ image_spec.name }}"
+  ansible.builtin.template:
+    src: "{{ image_spec.template }}"
+    dest: "/tmp/jenkins-image-build/Dockerfile.{{ image_spec.name }}"
+
+- name: "Build and push {{ image_spec.name }} image"
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project_name }}/{{ image_spec.name }}"
+    tag: "{{ image_spec.tag }}"
+    source: build
+    build:
+      path: "/tmp/jenkins-image-build"
+      dockerfile: "Dockerfile.{{ image_spec.name }}"
+    push: true
+    force_source: true
+EOF
+cat <<'EOF' > ansible/roles/jenkins-images/templates/Dockerfile.master.j2
+ARG JENKINS_VERSION={{ jenkins_version }}
+FROM jenkins/jenkins:\${JENKINS_VERSION}-lts-jdk11
+USER root
+RUN apt-get update && apt-get install -y rsync
+USER jenkins
+EOF
+cat <<'EOF' > ansible/roles/jenkins-images/templates/Dockerfile.dind-agent.j2
+FROM docker:24-dind
+RUN addgroup -S jenkins && adduser -S -G jenkins jenkins
+EOF
+
+# --- Role: jenkins-ha ---
+cat <<'EOF' > ansible/roles/jenkins-ha/tasks/main.yml
+---
+- name: Ensure Jenkins config directories exist on host
+  ansible.builtin.file:
+    path: "{{ jenkins_home_nfs_mount }}/casc_configs"
+    state: directory
+    owner: '1000'
+    group: '1000'
+
+- name: Template JCasC configuration file
+  ansible.builtin.template:
+    src: jenkins.yml.j2
+    dest: "{{ jenkins_home_nfs_mount }}/casc_configs/jenkins.yml"
+    owner: '1000'
+    group: '1000'
+
+- name: Pull the latest Jenkins master image from Harbor
+  community.docker.docker_image:
+    name: "{{ jenkins_master_image }}"
+    source: pull
+
+- name: Create and start the Jenkins master container
+  community.docker.docker_container:
+    name: jenkins-master
+    image: "{{ jenkins_master_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - "{{ jenkins_home_nfs_mount }}:/var/jenkins_home"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      CASC_JENKINS_CONFIG: "/var/jenkins_home/casc_configs/jenkins.yml"
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+EOF
+cat <<'EOF' > ansible/roles/jenkins-ha/templates/jenkins.yml.j2
+jenkins:
+  systemMessage: "Jenkins configured automatically by Ansible - HA Setup"
+  security:
+    globalJobDslSecurityConfiguration:
+      useScriptSecurity: false
+jobs:
+  - script: |
+      folder('pipelines')
+      job('pipelines/seed-job') {
+        description('Seed job to create all other pipelines from Git.')
+        scm {
+          git {
+            remote {
+              url('https://github.com/your-org/jenkins-pipelines.git')
+              credentials('github-credentials-id')
+            }
+            branch('main')
+          }
+        }
+        triggers { scm('H/5 * * * *') }
+        dsl {
+          execute {
+            targets(
+              'pipelines/Jenkinsfile.image-builder',
+              'pipelines/Jenkinsfile.backup'
+            )
+          }
+        }
+      }
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "github-credentials-id"
+              username: "your-github-user"
+              password: "{{ vault_github_pat }}"
+EOF
+
+# --- Role: backup ---
+cat <<'EOF' > ansible/roles/backup/tasks/main.yml
+---
+- name: Ensure backup script directory exists on master
+  ansible.builtin.file:
+    path: "{{ jenkins_home_nfs_mount }}/scripts"
+    state: directory
+    owner: '1000'
+    group: '1000'
+    mode: '0755'
+
+- name: Template backup script
+  ansible.builtin.template:
+    src: backup-script.sh.j2
+    dest: "{{ jenkins_home_nfs_mount }}/scripts/backup.sh"
+    owner: '1000'
+    group: '1000'
+    mode: '0755'
+EOF
+cat <<'EOF' > ansible/roles/backup/templates/backup-script.sh.j2
+#!/bin/bash
+set -euo pipefail
+BACKUP_SRC="{{ jenkins_home_nfs_mount }}"
+BACKUP_DEST="{{ backup_path }}"
+DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+BACKUP_FILE="\${BACKUP_DEST}/jenkins-backup-\${DATE}.tar.gz"
+RETENTION_DAYS={{ backup_retention_days }}
+mkdir -p "\${BACKUP_DEST}"
+echo "Starting Jenkins backup..."
+tar --exclude="\${BACKUP_SRC}/workspace" -czf "\${BACKUP_FILE}" -C "\${BACKUP_SRC}" .
+echo "Backup created: \${BACKUP_FILE}"
+echo "Pruning old backups..."
+find "\${BACKUP_DEST}" -name "jenkins-backup-*.tar.gz" -mtime +\${RETENTION_DAYS} -exec rm -f {} \;
+EOF
+
+# --- Role: monitoring ---
+cat <<'EOF' > ansible/roles/monitoring/tasks/main.yml
+---
+- name: Create directories for Prometheus and Grafana
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /etc/prometheus
+    - /var/lib/prometheus
+    - /etc/grafana/provisioning/datasources
+    - /etc/grafana/provisioning/dashboards
+    - /var/lib/grafana
+
+- name: Template Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+
+- name: Template Grafana datasource
+  ansible.builtin.template:
+    src: grafana/datasources.yml.j2
+    dest: /etc/grafana/provisioning/datasources/datasources.yml
+
+- name: Deploy Prometheus container
+  community.docker.docker_container:
+    name: prometheus
+    image: "prom/prometheus:{{ prometheus_version }}"
+    state: started
+    ports: ["9090:9090"]
+    volumes:
+      - /etc/prometheus:/etc/prometheus
+      - /var/lib/prometheus:/prometheus
+
+- name: Deploy Grafana container
+  community.docker.docker_container:
+    name: grafana
+    image: "grafana/grafana:{{ grafana_version }}"
+    state: started
+    ports: ["3000:3000"]
+    volumes:
+      - /var/lib/grafana:/var/lib/grafana
+      - /etc/grafana/provisioning:/etc/grafana/provisioning
+    env:
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+EOF
+cat <<'EOF' > ansible/roles/monitoring/templates/prometheus.yml.j2
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+  - job_name: 'jenkins'
+    metrics_path: /prometheus
+    static_configs:
+      - targets: ['{{ hostvars[groups['load_balancers'][0]]['ansible_host'] }}:80']
+EOF
+cat <<'EOF' > ansible/roles/monitoring/templates/grafana/datasources.yml.j2
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+EOF
+
+# --- Role: security ---
+cat <<'EOF' > ansible/roles/security/tasks/main.yml
+---
+- name: Ensure firewalld is running
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: true
+
+- name: Open firewall ports on Jenkins Masters
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: ["8080/tcp", "50000/tcp"]
+  when: "inventory_hostname in groups['jenkins_masters']"
+
+- name: Open firewall ports on Load Balancer
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop: ["http", "https"]
+  when: "inventory_hostname in groups['load_balancers']"
+EOF
+
+# ==============================================================================
+# --- PIPELINES ---
+# ==============================================================================
+
+echo "Writing Jenkins pipeline files..."
+
+cat <<'EOF' > pipelines/Jenkinsfile.backup
+pipeline {
+    agent { label 'master' }
+    triggers { cron('H 2 * * *') }
+    stages {
+        stage('Execute Backup') {
+            steps {
+                sh '/var/jenkins_home/scripts/backup.sh'
+            }
+        }
+    }
+}
+EOF
+
+cat <<'EOF' > pipelines/Jenkinsfile.image-builder
+pipeline {
+    agent any
+    environment {
+        ANSIBLE_VAULT_PASSWORD = credentials('ansible-vault-password')
+    }
+    stages {
+        stage('Build & Push Images') {
+            steps {
+                sh 'ansible-playbook ansible/playbooks/update-images.yml -i ansible/inventories/production --vault-password-file <(echo $ANSIBLE_VAULT_PASSWORD)'
+            }
+        }
+    }
+}
+EOF
+
+echo ""
+echo "=================================================================="
+echo "Project 'jenkins-infrastructure' created successfully!"
+echo ""
+echo "Next Steps:"
+echo "1. 'cd jenkins-infrastructure' to enter the project directory."
+echo "2. Edit inventory and variables in 'ansible/inventories/production/'."
+echo "3. Encrypt your secrets: 'ansible-vault encrypt ansible/inventories/production/group_vars/all/vault.yml'"
+echo "4. Run 'make setup' to install Ansible dependencies."
+echo "5. Run 'make deploy' to start the deployment."
+echo "=================================================================="
+
