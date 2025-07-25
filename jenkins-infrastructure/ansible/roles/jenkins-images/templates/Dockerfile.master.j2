@@ -1,0 +1,5 @@
+ARG JENKINS_VERSION={{ jenkins_version }}
+FROM jenkins/jenkins:\${JENKINS_VERSION}-lts-jdk11
+USER root
+RUN apt-get update && apt-get install -y rsync
+USER jenkins

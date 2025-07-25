@@ -1,0 +1,6 @@
+# Encrypt this file with `ansible-vault encrypt vault.yml`
+# Contains sensitive data like passwords and API keys.
+harbor_password: "YourSuperSecretHarborPassword"
+jenkins_admin_password: "YourSuperSecretJenkinsPassword"
+grafana_admin_password: "YourSuperSecretGrafanaPassword"
+vault_github_pat: "YourGitHubPersonalAccessToken"

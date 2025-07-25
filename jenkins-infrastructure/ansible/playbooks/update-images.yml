@@ -1,0 +1,7 @@
+---
+- name: Build and Push Jenkins Docker Images
+  hosts: build_host
+  become: true
+  roles:
+    - role: jenkins-images
+      tags: ['jenkins-image-build']

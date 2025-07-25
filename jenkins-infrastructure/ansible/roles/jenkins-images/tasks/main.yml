@@ -1,0 +1,19 @@
+---
+- name: Ensure build directory exists
+  ansible.builtin.file:
+    path: "/tmp/jenkins-image-build"
+    state: directory
+
+- name: Log in to Harbor Registry
+  community.docker.docker_login:
+    registry_url: "{{ harbor_registry_url }}"
+    username: "{{ harbor_user }}"
+    password: "{{ harbor_password }}"
+
+- name: Build and push Jenkins images
+  include_tasks: build-images.yml
+  loop:
+    - { name: 'jenkins-master', tag: '{{ jenkins_version }}', template: 'Dockerfile.master.j2' }
+    - { name: 'dind-agent', tag: 'latest', template: 'Dockerfile.dind-agent.j2' }
+  loop_control:
+    loop_var: image_spec

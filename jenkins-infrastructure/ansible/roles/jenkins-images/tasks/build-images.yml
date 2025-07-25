@@ -1,0 +1,16 @@
+---
+- name: "Template Dockerfile for {{ image_spec.name }}"
+  ansible.builtin.template:
+    src: "{{ image_spec.template }}"
+    dest: "/tmp/jenkins-image-build/Dockerfile.{{ image_spec.name }}"
+
+- name: "Build and push {{ image_spec.name }} image"
+  community.docker.docker_image:
+    name: "{{ harbor_registry_url }}/{{ harbor_project_name }}/{{ image_spec.name }}"
+    tag: "{{ image_spec.tag }}"
+    source: build
+    build:
+      path: "/tmp/jenkins-image-build"
+      dockerfile: "Dockerfile.{{ image_spec.name }}"
+    push: true
+    force_source: true

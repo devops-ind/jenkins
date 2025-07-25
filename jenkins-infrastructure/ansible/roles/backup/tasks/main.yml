@@ -1,0 +1,16 @@
+---
+- name: Ensure backup script directory exists on master
+  ansible.builtin.file:
+    path: "{{ jenkins_home_nfs_mount }}/scripts"
+    state: directory
+    owner: '1000'
+    group: '1000'
+    mode: '0755'
+
+- name: Template backup script
+  ansible.builtin.template:
+    src: backup-script.sh.j2
+    dest: "{{ jenkins_home_nfs_mount }}/scripts/backup.sh"
+    owner: '1000'
+    group: '1000'
+    mode: '0755'

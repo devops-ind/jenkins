@@ -1,0 +1,13 @@
+pipeline {
+    agent any
+    environment {
+        ANSIBLE_VAULT_PASSWORD = credentials('ansible-vault-password')
+    }
+    stages {
+        stage('Build & Push Images') {
+            steps {
+                sh 'ansible-playbook ansible/playbooks/update-images.yml -i ansible/inventories/production --vault-password-file <(echo $ANSIBLE_VAULT_PASSWORD)'
+            }
+        }
+    }
+}

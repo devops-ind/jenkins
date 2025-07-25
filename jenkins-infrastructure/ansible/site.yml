@@ -1,0 +1,56 @@
+---
+- name: 1. Bootstrap all nodes
+  hosts: all
+  become: true
+  roles:
+    - role: common
+      tags: ['common']
+
+- name: 2. Install Docker
+  hosts: jenkins_masters, jenkins_agents, monitoring, build_host
+  become: true
+  roles:
+    - role: docker
+      tags: ['docker']
+
+- name: 3. Setup shared storage server (NFS)
+  hosts: nfs_server
+  become: true
+  roles:
+    - role: shared-storage
+      tags: ['storage', 'nfs-server']
+
+- name: 4. Mount shared storage on Jenkins masters
+  hosts: jenkins_masters
+  become: true
+  roles:
+    - role: shared-storage
+      tags: ['storage', 'nfs-client']
+
+- name: 5. Setup HAProxy load balancer
+  hosts: load_balancers
+  become: true
+  roles:
+    - role: haproxy
+      tags: ['haproxy', 'networking']
+
+- name: 6. Deploy HA Jenkins Masters
+  hosts: jenkins_masters
+  become: true
+  roles:
+    - role: jenkins-ha
+      tags: ['jenkins', 'jenkins-master']
+
+- name: 7. Deploy monitoring stack
+  hosts: monitoring
+  become: true
+  roles:
+    - role: monitoring
+      tags: ['monitoring']
+
+- name: 8. Apply security hardening
+  hosts: all
+  become: true
+  roles:
+    - role: security
+      tags: ['security']

@@ -1,0 +1,43 @@
+---
+- name: Create directories for Prometheus and Grafana
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /etc/prometheus
+    - /var/lib/prometheus
+    - /etc/grafana/provisioning/datasources
+    - /etc/grafana/provisioning/dashboards
+    - /var/lib/grafana
+
+- name: Template Prometheus configuration
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+
+- name: Template Grafana datasource
+  ansible.builtin.template:
+    src: grafana/datasources.yml.j2
+    dest: /etc/grafana/provisioning/datasources/datasources.yml
+
+- name: Deploy Prometheus container
+  community.docker.docker_container:
+    name: prometheus
+    image: "prom/prometheus:{{ prometheus_version }}"
+    state: started
+    ports: ["9090:9090"]
+    volumes:
+      - /etc/prometheus:/etc/prometheus
+      - /var/lib/prometheus:/prometheus
+
+- name: Deploy Grafana container
+  community.docker.docker_container:
+    name: grafana
+    image: "grafana/grafana:{{ grafana_version }}"
+    state: started
+    ports: ["3000:3000"]
+    volumes:
+      - /var/lib/grafana:/var/lib/grafana
+      - /etc/grafana/provisioning:/etc/grafana/provisioning
+    env:
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"

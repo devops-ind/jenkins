@@ -1,0 +1,16 @@
+# Ansible temporary files
+*.retry
+*.log
+
+# Vault files
+vault-passwords/
+*.vault
+
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# IDE specific
+.vscode/
+.idea/

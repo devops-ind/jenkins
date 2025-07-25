@@ -1,0 +1,11 @@
+pipeline {
+    agent { label 'master' }
+    triggers { cron('H 2 * * *') }
+    stages {
+        stage('Execute Backup') {
+            steps {
+                sh '/var/jenkins_home/scripts/backup.sh'
+            }
+        }
+    }
+}

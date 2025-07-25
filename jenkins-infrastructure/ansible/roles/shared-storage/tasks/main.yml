@@ -1,0 +1,51 @@
+---
+- name: Setup NFS Server
+  block:
+    - name: Install NFS server packages
+      ansible.builtin.package:
+        name: nfs-utils
+        state: present
+
+    - name: Create Jenkins home directory to be exported
+      ansible.builtin.file:
+        path: "{{ jenkins_home_nfs_share_path | default('/srv/nfs/jenkins_home') }}"
+        state: directory
+        mode: '0777'
+
+    - name: Configure NFS exports
+      ansible.builtin.template:
+        src: exports.j2
+        dest: /etc/exports
+      notify: Reload NFS
+
+    - name: Ensure NFS services are started and enabled
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - rpcbind
+        - nfs-server
+  when: "'nfs-server' in ansible_run_tags"
+
+- name: Setup NFS Client
+  block:
+    - name: Install NFS client packages
+      ansible.builtin.package:
+        name: nfs-utils
+        state: present
+
+    - name: Create mount point for Jenkins home
+      ansible.builtin.file:
+        path: "{{ jenkins_home_nfs_mount }}"
+        state: directory
+        mode: '0775'
+
+    - name: Mount the NFS share for Jenkins home
+      ansible.posix.mount:
+        src: "{{ hostvars[groups['nfs_server'][0]]['ansible_host'] }}:{{ jenkins_home_nfs_share_path | default('/srv/nfs/jenkins_home') }}"
+        path: "{{ jenkins_home_nfs_mount }}"
+        fstype: nfs
+        opts: "rw,sync,hard,intr"
+        state: mounted
+  when: "'nfs-client' in ansible_run_tags"

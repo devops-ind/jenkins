@@ -1,0 +1,1 @@
+{{ jenkins_home_nfs_share_path | default('/srv/nfs/jenkins_home') }} {% for host in groups['jenkins_masters'] %}{{ hostvars[host]['ansible_host'] }}(rw,sync,no_root_squash) {% endfor %}

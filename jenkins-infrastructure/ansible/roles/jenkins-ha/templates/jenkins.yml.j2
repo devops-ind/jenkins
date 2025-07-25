@@ -1,0 +1,38 @@
+jenkins:
+  systemMessage: "Jenkins configured automatically by Ansible - HA Setup"
+  security:
+    globalJobDslSecurityConfiguration:
+      useScriptSecurity: false
+jobs:
+  - script: |
+      folder('pipelines')
+      job('pipelines/seed-job') {
+        description('Seed job to create all other pipelines from Git.')
+        scm {
+          git {
+            remote {
+              url('https://github.com/your-org/jenkins-pipelines.git')
+              credentials('github-credentials-id')
+            }
+            branch('main')
+          }
+        }
+        triggers { scm('H/5 * * * *') }
+        dsl {
+          execute {
+            targets(
+              'pipelines/Jenkinsfile.image-builder',
+              'pipelines/Jenkinsfile.backup'
+            )
+          }
+        }
+      }
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "github-credentials-id"
+              username: "your-github-user"
+              password: "{{ vault_github_pat }}"

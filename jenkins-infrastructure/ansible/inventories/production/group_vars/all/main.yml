@@ -1,0 +1,25 @@
+# Global variables
+ansible_user: ansible_user
+ansible_ssh_private_key_file: "~/.ssh/id_rsa_prod"
+system_timezone: "Europe/Dublin"
+
+# Harbor Registry Details
+harbor_registry_url: "harbor.yourdomain.com"
+harbor_project_name: "jenkins"
+harbor_user: "your-harbor-user"
+
+# Jenkins Settings
+jenkins_version: "2.414.3"
+jenkins_home_nfs_mount: "/mnt/jenkins_home"
+jenkins_master_image: "{{ harbor_registry_url }}/{{ harbor_project_name }}/jenkins-master:{{ jenkins_version }}"
+jenkins_dind_agent_image: "{{ harbor_registry_url }}/{{ harbor_project_name }}/dind-agent:latest"
+jenkins_admin_user: "admin"
+
+# Monitoring Settings
+prometheus_version: "v2.45.0"
+grafana_version: "9.5.3"
+node_exporter_version: "1.6.0"
+
+# Backup Settings
+backup_path: "/mnt/backups/jenkins"
+backup_retention_days: 7

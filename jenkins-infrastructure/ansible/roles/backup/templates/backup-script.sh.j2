@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+BACKUP_SRC="{{ jenkins_home_nfs_mount }}"
+BACKUP_DEST="{{ backup_path }}"
+DATE=$(date +"%Y-%m-%d_%H-%M-%S")
+BACKUP_FILE="\${BACKUP_DEST}/jenkins-backup-\${DATE}.tar.gz"
+RETENTION_DAYS={{ backup_retention_days }}
+mkdir -p "\${BACKUP_DEST}"
+echo "Starting Jenkins backup..."
+tar --exclude="\${BACKUP_SRC}/workspace" -czf "\${BACKUP_FILE}" -C "\${BACKUP_SRC}" .
+echo "Backup created: \${BACKUP_FILE}"
+echo "Pruning old backups..."
+find "\${BACKUP_DEST}" -name "jenkins-backup-*.tar.gz" -mtime +\${RETENTION_DAYS} -exec rm -f {} \;

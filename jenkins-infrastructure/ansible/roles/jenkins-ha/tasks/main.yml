@@ -1,0 +1,35 @@
+---
+- name: Ensure Jenkins config directories exist on host
+  ansible.builtin.file:
+    path: "{{ jenkins_home_nfs_mount }}/casc_configs"
+    state: directory
+    owner: '1000'
+    group: '1000'
+
+- name: Template JCasC configuration file
+  ansible.builtin.template:
+    src: jenkins.yml.j2
+    dest: "{{ jenkins_home_nfs_mount }}/casc_configs/jenkins.yml"
+    owner: '1000'
+    group: '1000'
+
+- name: Pull the latest Jenkins master image from Harbor
+  community.docker.docker_image:
+    name: "{{ jenkins_master_image }}"
+    source: pull
+
+- name: Create and start the Jenkins master container
+  community.docker.docker_container:
+    name: jenkins-master
+    image: "{{ jenkins_master_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - "{{ jenkins_home_nfs_mount }}:/var/jenkins_home"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env:
+      CASC_JENKINS_CONFIG: "/var/jenkins_home/casc_configs/jenkins.yml"
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
